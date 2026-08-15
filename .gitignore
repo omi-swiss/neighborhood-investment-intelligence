@@ -1,0 +1,48 @@
+# Secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+*.egg-info/
+
+# Node and build output
+node_modules/
+.pnpm-store/
+.next/
+.vinext/
+dist/
+coverage/
+.wrangler/
+outputs/
+work/
+*.tsbuildinfo
+npm-debug.log*
+pnpm-debug.log*
+
+# Local data and databases
+data/raw/
+data/warehouse/
+data/published/
+*.duckdb
+*.duckdb.wal
+*.parquet
+
+# Local hosting configuration
+.openai/hosting.json
+.dev.vars
+
+# Editors and operating systems
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

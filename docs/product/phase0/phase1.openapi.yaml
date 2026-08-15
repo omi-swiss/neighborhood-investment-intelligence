@@ -1,0 +1,1066 @@
+openapi: 3.1.0
+info:
+  title: Neighborhood Investment Intelligence API
+  version: 1.0.0-phase1
+  description: >
+    Phase 1 contract for the Opportunity Screener. Metric values retain source,
+    period, geographic resolution, observation type, and quality metadata.
+servers:
+  - url: /api/v1
+security:
+  - bearerAuth: []
+tags:
+  - name: Areas
+  - name: Map
+  - name: Strategies
+  - name: Saved
+  - name: Methodology
+  - name: Health
+paths:
+  /areas/search:
+    get:
+      tags: [Areas]
+      operationId: searchAreas
+      parameters:
+        - $ref: "#/components/parameters/Query"
+        - name: levels
+          in: query
+          schema:
+            type: array
+            items:
+              $ref: "#/components/schemas/GeographicLevel"
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 10
+      responses:
+        "200":
+          description: Matching supported areas
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/AreaSummary"
+        default:
+          $ref: "#/components/responses/Error"
+  /areas:
+    get:
+      tags: [Areas]
+      operationId: listAreas
+      parameters:
+        - $ref: "#/components/parameters/ContextAreaId"
+        - $ref: "#/components/parameters/AsOf"
+        - $ref: "#/components/parameters/StrategyVersionId"
+        - name: filter
+          in: query
+          description: Repeatable expression `metric_id:operator:value[:value]`.
+          schema:
+            type: array
+            maxItems: 40
+            items:
+              type: string
+              maxLength: 200
+        - name: sort
+          in: query
+          description: Repeatable allow-listed `field:asc|desc` sort.
+          schema:
+            type: array
+            maxItems: 3
+            items:
+              type: string
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: Stable page from a single data release
+          headers:
+            ETag:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AreaPage"
+        default:
+          $ref: "#/components/responses/Error"
+  /areas/query:
+    post:
+      tags: [Areas]
+      operationId: queryAreas
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ScreenerQuery"
+      responses:
+        "200":
+          description: Query results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AreaPage"
+        default:
+          $ref: "#/components/responses/Error"
+  /areas/{areaId}:
+    get:
+      tags: [Areas]
+      operationId: getArea
+      parameters:
+        - $ref: "#/components/parameters/AreaId"
+        - $ref: "#/components/parameters/AsOf"
+      responses:
+        "200":
+          description: Area identity and geographic context
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AreaDetail"
+        default:
+          $ref: "#/components/responses/Error"
+  /areas/{areaId}/metrics:
+    get:
+      tags: [Areas]
+      operationId: getAreaMetrics
+      parameters:
+        - $ref: "#/components/parameters/AreaId"
+        - $ref: "#/components/parameters/AsOf"
+        - name: metric_ids
+          in: query
+          required: true
+          schema:
+            type: array
+            minItems: 1
+            maxItems: 50
+            items:
+              type: string
+      responses:
+        "200":
+          description: Current values with provenance
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MetricResponse"
+        default:
+          $ref: "#/components/responses/Error"
+  /areas/{areaId}/trends:
+    get:
+      tags: [Areas]
+      operationId: getAreaTrends
+      parameters:
+        - $ref: "#/components/parameters/AreaId"
+        - name: metric_ids
+          in: query
+          required: true
+          schema:
+            type: array
+            minItems: 1
+            maxItems: 12
+            items:
+              type: string
+        - name: start
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: end
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        "200":
+          description: Bounded metric observations ordered by reference period
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MetricResponse"
+        default:
+          $ref: "#/components/responses/Error"
+  /areas/{areaId}/comparisons:
+    get:
+      tags: [Areas]
+      operationId: getAreaComparisons
+      parameters:
+        - $ref: "#/components/parameters/AreaId"
+        - $ref: "#/components/parameters/AsOf"
+        - name: cohorts
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+              enum: [city, metro, state, national_urban]
+        - name: metric_ids
+          in: query
+          required: true
+          schema:
+            type: array
+            minItems: 1
+            maxItems: 30
+            items:
+              type: string
+      responses:
+        "200":
+          description: Explicit cohort ranks and benchmark values
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [area_id, release_id, comparisons]
+                properties:
+                  area_id:
+                    type: string
+                    format: uuid
+                  release_id:
+                    type: string
+                    format: uuid
+                  comparisons:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Comparison"
+        default:
+          $ref: "#/components/responses/Error"
+  /areas/{areaId}/scores:
+    get:
+      tags: [Areas]
+      operationId: getAreaScores
+      parameters:
+        - $ref: "#/components/parameters/AreaId"
+        - $ref: "#/components/parameters/StrategyVersionId"
+        - $ref: "#/components/parameters/AsOf"
+      responses:
+        "200":
+          description: Score categories and auditable component calculations
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [area_id, release_id, scores]
+                properties:
+                  area_id:
+                    type: string
+                    format: uuid
+                  release_id:
+                    type: string
+                    format: uuid
+                  scores:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ScoreExplanation"
+        default:
+          $ref: "#/components/responses/Error"
+  /map/tiles/{z}/{x}/{y}.mvt:
+    get:
+      tags: [Map]
+      operationId: getOpportunityTile
+      parameters:
+        - name: z
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 16
+        - name: x
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 0
+        - name: y
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 0
+        - $ref: "#/components/parameters/StrategyVersionId"
+        - name: metric_id
+          in: query
+          schema:
+            type: string
+        - $ref: "#/components/parameters/AsOf"
+      responses:
+        "200":
+          description: Mapbox vector tile for the requested tile only
+          headers:
+            ETag:
+              schema:
+                type: string
+          content:
+            application/vnd.mapbox-vector-tile:
+              schema:
+                type: string
+                contentEncoding: binary
+        "204":
+          description: Valid tile with no features
+        default:
+          $ref: "#/components/responses/Error"
+  /strategies:
+    get:
+      tags: [Strategies]
+      operationId: listStrategies
+      responses:
+        "200":
+          description: System and workspace strategies
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Strategy"
+        default:
+          $ref: "#/components/responses/Error"
+  /strategies/{strategyId}/versions:
+    post:
+      tags: [Strategies]
+      operationId: createStrategyVersion
+      parameters:
+        - name: strategyId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StrategyVersionInput"
+      responses:
+        "201":
+          description: New immutable strategy version
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Strategy"
+        default:
+          $ref: "#/components/responses/Error"
+  /saved-areas:
+    get:
+      tags: [Saved]
+      operationId: listSavedAreas
+      responses:
+        "200":
+          description: Workspace saved areas
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/AreaSummary"
+        default:
+          $ref: "#/components/responses/Error"
+    post:
+      tags: [Saved]
+      operationId: saveArea
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [area_id]
+              properties:
+                area_id:
+                  type: string
+                  format: uuid
+      responses:
+        "201":
+          description: Area saved
+        default:
+          $ref: "#/components/responses/Error"
+  /saved-areas/{areaId}:
+    delete:
+      tags: [Saved]
+      operationId: removeSavedArea
+      parameters:
+        - $ref: "#/components/parameters/AreaId"
+      responses:
+        "204":
+          description: Save removed or already absent
+        default:
+          $ref: "#/components/responses/Error"
+  /saved-filter-sets:
+    get:
+      tags: [Saved]
+      operationId: listSavedFilterSets
+      responses:
+        "200":
+          description: Workspace filter sets
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/SavedFilterSet"
+        default:
+          $ref: "#/components/responses/Error"
+    post:
+      tags: [Saved]
+      operationId: createSavedFilterSet
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [name, query]
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 200
+                query:
+                  $ref: "#/components/schemas/ScreenerQuery"
+      responses:
+        "201":
+          description: Filter set saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SavedFilterSet"
+        default:
+          $ref: "#/components/responses/Error"
+  /metrics:
+    get:
+      tags: [Methodology]
+      operationId: listMetrics
+      responses:
+        "200":
+          description: Metric definitions and current coverage
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/MetricDefinition"
+        default:
+          $ref: "#/components/responses/Error"
+  /sources:
+    get:
+      tags: [Methodology]
+      operationId: listSources
+      responses:
+        "200":
+          description: Data source catalogue
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/DataSource"
+        default:
+          $ref: "#/components/responses/Error"
+  /health/data:
+    get:
+      tags: [Health]
+      operationId: getDataHealth
+      responses:
+        "200":
+          description: Authorized, safe service and freshness status
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, active_release_id, sources]
+                properties:
+                  status:
+                    type: string
+                    enum: [healthy, degraded]
+                  active_release_id:
+                    type: string
+                    format: uuid
+                  sources:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/DataSource"
+        default:
+          $ref: "#/components/responses/Error"
+  /exports/areas.csv:
+    post:
+      tags: [Areas]
+      operationId: exportAreasCsv
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ScreenerQuery"
+      responses:
+        "200":
+          description: Bounded CSV export
+          content:
+            text/csv:
+              schema:
+                type: string
+        default:
+          $ref: "#/components/responses/Error"
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    Query:
+      name: q
+      in: query
+      required: true
+      schema:
+        type: string
+        minLength: 2
+        maxLength: 200
+    AreaId:
+      name: areaId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    ContextAreaId:
+      name: context_area_id
+      in: query
+      schema:
+        type: string
+        format: uuid
+    StrategyVersionId:
+      name: strategy_version_id
+      in: query
+      required: true
+      schema:
+        type: string
+        format: uuid
+    AsOf:
+      name: as_of
+      in: query
+      schema:
+        type: string
+        format: date
+    Page:
+      name: page
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+    PageSize:
+      name: page_size
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 200
+        default: 50
+  responses:
+    Error:
+      description: Structured error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+  schemas:
+    GeographicLevel:
+      type: string
+      enum: [nation, state, metro, county, place, zip, tract]
+    AreaSummary:
+      type: object
+      required: [area_id, geoid, level, name]
+      properties:
+        area_id:
+          type: string
+          format: uuid
+        geoid:
+          type: string
+        level:
+          $ref: "#/components/schemas/GeographicLevel"
+        name:
+          type: string
+        state_abbr:
+          type: [string, "null"]
+        context_label:
+          type: [string, "null"]
+    AreaDetail:
+      allOf:
+        - $ref: "#/components/schemas/AreaSummary"
+        - type: object
+          required: [geography_vintage, release_id]
+          properties:
+            geography_vintage:
+              type: string
+            parent_areas:
+              type: array
+              items:
+                $ref: "#/components/schemas/AreaSummary"
+            representative_point:
+              $ref: "#/components/schemas/GeoJsonPoint"
+            release_id:
+              type: string
+              format: uuid
+    AreaPage:
+      type: object
+      required: [items, page, page_size, total, release_id, as_of]
+      properties:
+        items:
+          type: array
+          items:
+            type: object
+            required: [area, metrics]
+            properties:
+              area:
+                $ref: "#/components/schemas/AreaSummary"
+              metrics:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MetricObservation"
+              score:
+                oneOf:
+                  - $ref: "#/components/schemas/ScoreSummary"
+                  - type: "null"
+        page:
+          type: integer
+        page_size:
+          type: integer
+        total:
+          type: integer
+        release_id:
+          type: string
+          format: uuid
+        as_of:
+          type: string
+          format: date
+    ScreenerQuery:
+      type: object
+      additionalProperties: false
+      required: [as_of, page, page_size, filters, sort]
+      properties:
+        context_area_id:
+          type: [string, "null"]
+          format: uuid
+        levels:
+          type: array
+          items:
+            $ref: "#/components/schemas/GeographicLevel"
+        as_of:
+          type: string
+          format: date
+        strategy_version_id:
+          type: [string, "null"]
+          format: uuid
+        filters:
+          type: array
+          maxItems: 40
+          items:
+            $ref: "#/components/schemas/MetricFilter"
+        sort:
+          type: array
+          maxItems: 3
+          items:
+            $ref: "#/components/schemas/Sort"
+        page:
+          type: integer
+          minimum: 1
+        page_size:
+          type: integer
+          minimum: 1
+          maximum: 200
+        viewport:
+          oneOf:
+            - $ref: "#/components/schemas/BoundingBox"
+            - type: "null"
+    MetricFilter:
+      type: object
+      additionalProperties: false
+      required: [metric_id, operator, value]
+      properties:
+        metric_id:
+          type: string
+        operator:
+          type: string
+          enum: [eq, gte, lte, between, is_missing, is_not_missing]
+        value: {}
+        second_value: {}
+    Sort:
+      type: object
+      additionalProperties: false
+      required: [field, direction]
+      properties:
+        field:
+          type: string
+        direction:
+          type: string
+          enum: [asc, desc]
+    MetricObservation:
+      type: object
+      required:
+        - metric_id
+        - unit
+        - observation_type
+        - geographic_level
+        - reference_start
+        - reference_end
+        - source_id
+        - release_id
+        - quality_status
+      properties:
+        metric_id:
+          type: string
+        value:
+          type: [number, "null"]
+        unit:
+          type: string
+        observation_type:
+          type: string
+          enum: [observed, derived, nowcast, forecast, system_default]
+        geographic_level:
+          $ref: "#/components/schemas/GeographicLevel"
+        reference_start:
+          type: string
+          format: date
+        reference_end:
+          type: string
+          format: date
+        available_at:
+          type: [string, "null"]
+          format: date
+        source_vintage:
+          type: [string, "null"]
+        source_id:
+          type: string
+        release_id:
+          type: string
+          format: uuid
+        method_version:
+          type: [string, "null"]
+        margin_of_error:
+          type: [number, "null"]
+        lower_bound:
+          type: [number, "null"]
+        upper_bound:
+          type: [number, "null"]
+        quality_status:
+          type: string
+          enum: [reliable, caution, unreliable, not_available, not_assessed]
+        quality_messages:
+          type: array
+          items:
+            type: object
+            required: [code, message]
+            properties:
+              code:
+                type: string
+              message:
+                type: string
+    MetricResponse:
+      type: object
+      required: [area_id, release_id, observations]
+      properties:
+        area_id:
+          type: string
+          format: uuid
+        release_id:
+          type: string
+          format: uuid
+        observations:
+          type: array
+          items:
+            $ref: "#/components/schemas/MetricObservation"
+    Comparison:
+      type: object
+      required: [metric_id, cohort_type, cohort_id, cohort_size, percentile]
+      properties:
+        metric_id:
+          type: string
+        cohort_type:
+          type: string
+          enum: [city, metro, state, national_urban]
+        cohort_id:
+          type: string
+        cohort_size:
+          type: integer
+          minimum: 0
+        benchmark_value:
+          type: [number, "null"]
+        percentile:
+          type: number
+          minimum: 0
+          maximum: 100
+        aggregation_method:
+          type: string
+    ScoreSummary:
+      type: object
+      required: [strategy_version_id, value, coverage, status]
+      properties:
+        strategy_version_id:
+          type: string
+          format: uuid
+        value:
+          type: [number, "null"]
+          minimum: 0
+          maximum: 100
+        coverage:
+          type: number
+          minimum: 0
+          maximum: 1
+        status:
+          type: string
+          enum: [scored, insufficient_data, excluded]
+    ScoreExplanation:
+      allOf:
+        - $ref: "#/components/schemas/ScoreSummary"
+        - type: object
+          required: [category, components]
+          properties:
+            category:
+              type: string
+            components:
+              type: array
+              items:
+                type: object
+                required:
+                  - metric_id
+                  - configured_weight
+                  - favorable_direction
+                properties:
+                  metric_id:
+                    type: string
+                  raw_value:
+                    type: [number, "null"]
+                  benchmark_value:
+                    type: [number, "null"]
+                  normalized_score:
+                    type: [number, "null"]
+                  configured_weight:
+                    type: number
+                  effective_weight:
+                    type: [number, "null"]
+                  favorable_direction:
+                    type: string
+                    enum: [higher, lower, target]
+                  missing_reason:
+                    type: [string, "null"]
+    Strategy:
+      type: object
+      required: [strategy_id, strategy_version_id, name, version, components]
+      properties:
+        strategy_id:
+          type: string
+          format: uuid
+        strategy_version_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        version:
+          type: integer
+        minimum_coverage:
+          type: number
+          minimum: 0
+          maximum: 1
+        components:
+          type: array
+          items:
+            $ref: "#/components/schemas/StrategyComponent"
+    StrategyVersionInput:
+      type: object
+      additionalProperties: false
+      required: [name, minimum_coverage, components]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        minimum_coverage:
+          type: number
+          minimum: 0
+          maximum: 1
+        components:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/StrategyComponent"
+    StrategyComponent:
+      type: object
+      additionalProperties: false
+      required: [category, metric_id, weight, favorable_direction]
+      properties:
+        category:
+          type: string
+        metric_id:
+          type: string
+        weight:
+          type: number
+          exclusiveMinimum: 0
+        favorable_direction:
+          type: string
+          enum: [higher, lower, target]
+        required:
+          type: boolean
+          default: false
+    SavedFilterSet:
+      type: object
+      required: [saved_filter_set_id, name, query, created_at, updated_at]
+      properties:
+        saved_filter_set_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        query:
+          $ref: "#/components/schemas/ScreenerQuery"
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    MetricDefinition:
+      type: object
+      required:
+        - metric_id
+        - display_name
+        - description
+        - unit
+        - favorable_direction
+        - methodology_version
+      properties:
+        metric_id:
+          type: string
+        display_name:
+          type: string
+        description:
+          type: string
+        unit:
+          type: string
+        favorable_direction:
+          type: string
+          enum: [higher, lower, target, context_only]
+        methodology_version:
+          type: string
+        filterable:
+          type: boolean
+        coverage_note:
+          type: [string, "null"]
+    DataSource:
+      type: object
+      required: [source_id, publisher, dataset_name, source_url]
+      properties:
+        source_id:
+          type: string
+        publisher:
+          type: string
+        dataset_name:
+          type: string
+        source_url:
+          type: string
+          format: uri
+        documentation_url:
+          type: [string, "null"]
+          format: uri
+        native_geographic_level:
+          type: [string, "null"]
+        update_frequency:
+          type: [string, "null"]
+        limitations:
+          type: [string, "null"]
+        last_successful_ingestion:
+          type: [string, "null"]
+          format: date-time
+        expected_next_release:
+          type: [string, "null"]
+          format: date
+    BoundingBox:
+      type: object
+      additionalProperties: false
+      required: [west, south, east, north]
+      properties:
+        west:
+          type: number
+          minimum: -180
+          maximum: 180
+        south:
+          type: number
+          minimum: -90
+          maximum: 90
+        east:
+          type: number
+          minimum: -180
+          maximum: 180
+        north:
+          type: number
+          minimum: -90
+          maximum: 90
+    GeoJsonPoint:
+      type: object
+      additionalProperties: false
+      required: [type, coordinates]
+      properties:
+        type:
+          type: string
+          const: Point
+        coordinates:
+          type: array
+          prefixItems:
+            - type: number
+              minimum: -180
+              maximum: 180
+            - type: number
+              minimum: -90
+              maximum: 90
+          minItems: 2
+          maxItems: 2
+    ErrorEnvelope:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message, request_id, details]
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+            request_id:
+              type: string
+            details:
+              type: array
+              items:
+                type: object
+                required: [field, reason]
+                properties:
+                  field:
+                    type: string
+                  reason:
+                    type: string

@@ -1,0 +1,2 @@
+policy_id,jurisdiction_type,state_fips,county_geoid,place_geoid,jurisdiction_name,policy_category,policy_dimension,policy_summary,effective_date,expiration_date,official_citation,official_source_url,last_verified_date,review_status,confidence_level,applicability_note
+example_policy,STATE,11,,,District of Columbia,RENTAL_HOUSING,TENANT_PROTECTIONS,Example placeholder only; replace with reviewed official policy text,2026-01-01,,Example citation,https://example.gov/code,2026-01-02,MANUAL_REVIEW_REQUIRED,LOW,Not legal advice

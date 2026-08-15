@@ -1,0 +1,2 @@
+project_id,company_name,project_name,investment_type,status,announcement_date,expected_open_date,capex_usd,expected_jobs,county_geoid,latitude,longitude,coordinate_precision,primary_source_url,verification_status
+example_project,Example Company,Example facility,data_center,ANNOUNCED,2026-01-15,2028-01-01,100000000,100,11001,38.9000,-77.0350,APPROXIMATE,https://example.gov/project,NEEDS_REVIEW

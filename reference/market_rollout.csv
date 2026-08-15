@@ -1,0 +1,9 @@
+market_id,market_name,cbsa_code,priority_tier,rollout_status,public_record_strategy,listing_strategy,transit_strategy,notes
+washington-dc,"Washington-Arlington-Alexandria, DC-VA-MD-WV",47900,1,LIVE,"DC ArcGIS now; county connectors for VA/MD","Authorized imports now; Bright MLS/RESO credentials later","WMATA key pending; local agencies added by jurisdiction","Current product pilot"
+baltimore-md,"Baltimore-Columbia-Towson, MD",12580,1,SCREENER_LIVE,"Baltimore City weekly real-property records integrated; surrounding counties next","Bright MLS/RESO credentials or authorized vendor","MTA Maryland GTFS","City tract screener and recent recorded-sale context active"
+philadelphia-pa,"Philadelphia-Camden-Wilmington, PA-NJ-DE-MD",37980,1,SCREENER_LIVE,"Philadelphia OPA property and recorded-sale records integrated; surrounding counties next","Bright MLS/RESO credentials or authorized vendor","SEPTA and regional GTFS","City tract screener and recent recorded-sale context active"
+atlanta-ga,"Atlanta-Sandy Springs-Alpharetta, GA",12060,2,PLANNED,"Georgia county tax-assessor connectors","Georgia MLS/FMLS authorization or vendor","MARTA GTFS","Strong employment and development signals"
+dallas-tx,"Dallas-Fort Worth-Arlington, TX",19100,2,PLANNED,"Texas appraisal-district connectors","NTREIS authorization or vendor","DART and regional GTFS","High-growth metro with fragmented parcel sources"
+houston-tx,"Houston-The Woodlands-Sugar Land, TX",26420,2,PLANNED,"Texas appraisal-district connectors","HAR authorization or vendor","METRO GTFS","Flood and insurance layers are especially important"
+charlotte-nc,"Charlotte-Concord-Gastonia, NC-SC",16740,2,PLANNED,"County GIS/tax connectors","Canopy MLS authorization or vendor","CATS GTFS","Regional growth and multifamily coverage"
+phoenix-az,"Phoenix-Mesa-Chandler, AZ",38060,3,PLANNED,"Arizona county assessor connectors","ARMLS authorization or vendor","Valley Metro GTFS","Heat, water, and insurance layers required"

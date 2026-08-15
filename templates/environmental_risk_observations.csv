@@ -1,0 +1,2 @@
+observation_id,source_record_id,geography_type,geography_id,geography_vintage,risk_category,metric_id,value_numeric,value_text,unit,observation_date,reference_period_start,reference_period_end,source_vintage,publication_date,source_url,assignment_method,review_status,confidence_level
+example_risk,example_source_record,COUNTY,11001,2020,FLOOD,example_flood_exposure_share,0.10,,share,2026-01-01,2025-01-01,2025-12-31,example-2026,2026-01-01,https://example.gov/risk,DIRECT_NATIVE_GEOGRAPHY,MANUAL_REVIEW_REQUIRED,LOW
