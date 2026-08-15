@@ -40,6 +40,7 @@ const cashModel = {
   rentGrowth: 0,
   vacancyRate: 0,
   creditLossRate: 0,
+  propertyTaxRate: 0,
   annualPropertyTaxes: 0,
   annualInsurance: 0,
   hoaMonthly: 0,
@@ -112,7 +113,7 @@ test("renders the Phase 3 model with Phase 4 sensitivity and stress diagnostics"
   assert.equal(response.status, 200);
   const html = await response.text();
   assert.match(html, /Financial Underwriting/);
-  assert.match(html, /Auditable underwriting/);
+  assert.match(html, /Build reproducible pre-tax scenarios/);
   assert.match(html, /Base case/);
   assert.match(html, /Formula audit/);
   assert.match(html, /Stress tests/);
@@ -391,7 +392,7 @@ test("validates property imports without writing or inventing missing facts", as
 
 test("returns filtered, paginated real-data area records", async () => {
   const response = await request(
-    "/api/areas?minimumScore=60&minimumIncomeGrowth=-0.03&minimumGrossYield=0&maximumVacancy=0.3&sort=score&page=1&pageSize=10",
+    "/api/areas?market=place:1150000&minimumScore=60&minimumIncomeGrowth=-0.03&minimumGrossYield=0&maximumVacancy=0.3&sort=score&page=1&pageSize=10",
   );
   assert.equal(response.status, 200);
   const payload = await response.json();
@@ -449,8 +450,8 @@ test("renders the market intelligence workspace with honest partial coverage", a
   assert.equal(response.status, 200);
   const html = await response.text();
   assert.match(html, /Market intelligence/);
-  assert.match(html, /Source-controlled event table/);
-  assert.match(html, /not currently loaded/i);
+  assert.match(html, /Verified project, grant, and urbanism pipeline/);
+  assert.match(html, /verified records/i);
   assert.match(html, /Regulatory profile/);
 });
 
