@@ -111,6 +111,10 @@ node --test tests/rendered-html.test.mjs
 
 GitHub Actions runs the same core pipeline and web checks for pushes and pull requests.
 
+## Codex project workflows
+
+The repository includes project-scoped Codex guidance in `AGENTS.md`, reusable skills in `.agents/skills/`, and narrow custom agents in `.codex/agents/`. The UI workflow intentionally combines the existing semantic CSS and brand variables with selective Tailwind CSS 4 utilities; it does not require a wholesale styling rewrite. See `docs/ui-registry.md` before changing maps, layouts, controls, or responsive behavior.
+
 ## Privacy and responsible use
 
 The project emphasizes aggregate market analysis and public property records. Do not add protected personal data, private contact details, authentication secrets, or data whose license prohibits redistribution. Users remain responsible for fair-housing, privacy, solicitation, and data-provider requirements in their jurisdiction.

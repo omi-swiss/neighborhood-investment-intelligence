@@ -1,0 +1,3 @@
+interface:
+  display_name: "NII Recover"
+  short_description: "Safely resume interrupted NII work"

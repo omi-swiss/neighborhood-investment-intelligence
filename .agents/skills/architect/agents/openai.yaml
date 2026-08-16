@@ -1,0 +1,3 @@
+interface:
+  display_name: "NII Architect"
+  short_description: "Plan cross-cutting NII product and data changes"

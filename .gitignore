@@ -46,3 +46,6 @@ data/published/
 Thumbs.db
 .idea/
 .vscode/
+
+# Local Codex project memory
+memory.md
