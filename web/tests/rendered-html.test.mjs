@@ -91,12 +91,12 @@ test("exposes property-universe coverage for every supported market", async () =
   const response = await request("/api/public-property-directory?market=all&page=1");
   assert.equal(response.status, 200);
   const payload = await response.json();
-  assert.equal(payload.coverage.length, 9);
+  assert.equal(payload.coverage.length, 20);
   assert.deepEqual(
     payload.coverage.map((market) => market.city).sort(),
-    ["Baltimore", "Boston", "Charleston", "Charlotte", "Chicago", "Detroit", "Philadelphia", "Tampa", "Washington"],
+    ["Austin", "Baltimore", "Boston", "Charleston", "Charlotte", "Chicago", "Cincinnati", "Columbus", "Dallas", "Denver", "Detroit", "Miami", "Nashville-Davidson", "New York City", "Philadelphia", "Phoenix", "San Antonio", "Seattle", "Tampa", "Washington"],
   );
-  assert.equal(payload.coverage.filter((market) => market.recordCoverage === "live-official").length, 6);
+  assert.equal(payload.coverage.filter((market) => market.recordCoverage === "live-official").length, 17);
   assert.equal(payload.lookupStatus, "snapshot");
 });
 
@@ -414,7 +414,7 @@ test("renders a real tract detail route with provenance", async () => {
   assert.equal(response.status, 200);
   const html = await response.text();
   assert.match(html, /Investor decision snapshot/);
-  assert.match(html, /Market quality/);
+  assert.match(html, /Area fundamentals/);
   assert.match(html, /Current area evidence/);
   assert.match(html, /Decision notes/);
   assert.doesNotMatch(html, /Sources and quality/);

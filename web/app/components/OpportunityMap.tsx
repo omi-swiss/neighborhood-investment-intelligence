@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { formatCurrency, formatPercent } from "../lib/area-shared";
 import { buildMarketCenters, investorAreaName } from "../lib/area-insights";
 import type { DevelopmentPin, EnvironmentalPin } from "../lib/phase8";
-import type { AreaRecord, MarketFocus } from "../lib/types";
+import type { AreaRecord, MarketFocus, MarketMapSummary } from "../lib/types";
 
 type Point = [number, number];
 type MapBounds = { west: number; east: number; south: number; north: number };
@@ -23,6 +23,45 @@ type OrientationLabel = {
 
 const MAP_WIDTH = 800;
 const MAP_HEIGHT = 520;
+
+const COUNTY_NAMES: Record<string, string> = {
+  "County 04013": "Maricopa County",
+  "County 08031": "City and County of Denver",
+  "County 11001": "District of Columbia",
+  "County 12057": "Hillsborough County",
+  "County 12086": "Miami-Dade County",
+  "County 17031": "Cook County",
+  "County 17043": "DuPage County",
+  "County 24510": "Baltimore city",
+  "County 25025": "Suffolk County",
+  "County 26163": "Wayne County",
+  "County 36005": "Bronx County",
+  "County 36047": "Kings County",
+  "County 36061": "New York County",
+  "County 36081": "Queens County",
+  "County 36085": "Richmond County",
+  "County 37119": "Mecklenburg County",
+  "County 39041": "Delaware County",
+  "County 39045": "Fairfield County",
+  "County 39049": "Franklin County",
+  "County 39061": "Hamilton County",
+  "County 42101": "Philadelphia County",
+  "County 45015": "Berkeley County",
+  "County 45019": "Charleston County",
+  "County 47037": "Davidson County",
+  "County 48029": "Bexar County",
+  "County 48085": "Collin County",
+  "County 48113": "Dallas County",
+  "County 48121": "Denton County",
+  "County 48397": "Rockwall County",
+  "County 48453": "Travis County",
+  "County 48491": "Williamson County",
+  "County 53033": "King County",
+};
+
+function countyDisplayName(county: string): string {
+  return COUNTY_NAMES[county] ?? county;
+}
 
 const MARKET_LANDMARKS: Record<string, OrientationLabel[]> = {
   "place:1150000": [
@@ -110,6 +149,15 @@ function boundsFor(areas: AreaRecord[], cityFocused = false): MapBounds {
   return { west: west - longitudePadding, east: east + longitudePadding, south: south - latitudePadding, north: north + latitudePadding };
 }
 
+function boundsForMarketSummaries(markets: MarketMapSummary[]): MapBounds {
+  if (!markets.length) return { west: -125, east: -66, south: 24, north: 50 };
+  const west = Math.min(...markets.map((market) => market.longitude));
+  const east = Math.max(...markets.map((market) => market.longitude));
+  const south = Math.min(...markets.map((market) => market.latitude));
+  const north = Math.max(...markets.map((market) => market.latitude));
+  return { west: west - 4, east: east + 4, south: south - 2.5, north: north + 2.5 };
+}
+
 function pathFor(area: AreaRecord, bounds: MapBounds): string {
   const padding = 24;
   const project = ([lon, lat]: Point) => {
@@ -172,9 +220,12 @@ function panBounds(bounds: MapBounds, from: Point, to: Point): MapBounds {
   return { west: bounds.west - longitudeShift, east: bounds.east - longitudeShift, south: bounds.south + latitudeShift, north: bounds.north + latitudeShift };
 }
 
-export function OpportunityMap({ areas, contextAreas, focusCity, focusLabel, selectedId, hoveredId, comparedIds, loading, onHover, onSelect }: {
+export function OpportunityMap({ areas, contextAreas, marketSummaries, mapTotal, mapTruncated, focusCity, focusLabel, selectedId, hoveredId, comparedIds, loading, onHover, onSelect, onFocusCity }: {
   areas: AreaRecord[];
   contextAreas: AreaRecord[];
+  marketSummaries: MarketMapSummary[];
+  mapTotal: number;
+  mapTruncated: boolean;
   focusCity: MarketFocus;
   focusLabel: string;
   selectedId: string | null;
@@ -183,6 +234,7 @@ export function OpportunityMap({ areas, contextAreas, focusCity, focusLabel, sel
   loading: boolean;
   onHover: (areaId: string | null) => void;
   onSelect: (area: AreaRecord) => void;
+  onFocusCity: (marketId: MarketFocus) => void;
 }) {
   const [layer, setLayer] = useState<MapLayer>("opportunity");
   const [selectedSignal, setSelectedSignal] = useState<SignalPin | null>(null);
@@ -192,7 +244,11 @@ export function OpportunityMap({ areas, contextAreas, focusCity, focusLabel, sel
   const [layerCount, setLayerCount] = useState({ development: 0, environment: 0, flood: 0 });
   const [signalLoading, setSignalLoading] = useState(false);
   const [showOrientationLabels, setShowOrientationLabels] = useState(true);
-  const baseBounds = useMemo(() => boundsFor(contextAreas.length ? contextAreas : areas, focusCity !== "all"), [areas, contextAreas, focusCity]);
+  const isMarketOverview = focusCity === "all";
+  const baseBounds = useMemo(
+    () => isMarketOverview ? boundsForMarketSummaries(marketSummaries) : boundsFor(contextAreas.length ? contextAreas : areas, true),
+    [areas, contextAreas, isMarketOverview, marketSummaries],
+  );
   const [bounds, setBounds] = useState(baseBounds);
   const [boxZoomMode, setBoxZoomMode] = useState(false);
   const [zoomBox, setZoomBox] = useState<{ start: Point; end: Point } | null>(null);
@@ -210,7 +266,25 @@ export function OpportunityMap({ areas, contextAreas, focusCity, focusLabel, sel
     () => contextAreas.filter((area) => !resultIds.has(area.id)),
     [contextAreas, resultIds],
   );
+  const marketOverview = marketSummaries;
+  const countySummaries = useMemo(() => {
+    if (isMarketOverview) return [];
+    const grouped = new Map<string, { name: string; count: number; longitude: number; latitude: number }>();
+    for (const area of contextAreas.length ? contextAreas : areas) {
+      if (area.longitude === null || area.latitude === null) continue;
+      const current = grouped.get(area.county) ?? { name: countyDisplayName(area.county), count: 0, longitude: 0, latitude: 0 };
+      current.count += 1;
+      current.longitude += area.longitude;
+      current.latitude += area.latitude;
+      grouped.set(area.county, current);
+    }
+    return [...grouped.values()]
+      .map((county) => ({ ...county, longitude: county.longitude / county.count, latitude: county.latitude / county.count }))
+      .sort((left, right) => right.count - left.count)
+      .slice(0, 6);
+  }, [areas, contextAreas, isMarketOverview]);
   const geometryNotice = useMemo(() => {
+    if (isMarketOverview) return "Market-centroid atlas";
     const renderedAreas = contextAreas.length ? contextAreas : areas;
     const vintages = new Set(renderedAreas.map((area) => area.geometryVintage ?? "2020"));
     const displayCount = renderedAreas.filter((area) => area.geometryVintage === "2025").length;
@@ -219,7 +293,7 @@ export function OpportunityMap({ areas, contextAreas, focusCity, focusLabel, sel
     }
     if (vintages.has("2025")) return "Map boundary: 2025 TIGER/Line where available; 2020 elsewhere";
     return "Map boundary: 2020 Census tract geography";
-  }, [areas, contextAreas]);
+  }, [areas, contextAreas, isMarketOverview]);
   const marketCenters = useMemo(
     () => buildMarketCenters(contextAreas.length ? contextAreas : areas),
     [areas, contextAreas],
@@ -331,6 +405,20 @@ export function OpportunityMap({ areas, contextAreas, focusCity, focusLabel, sel
     });
   }
 
+  useEffect(() => {
+    const element = svgRef.current;
+    if (!element) return;
+    // React's delegated wheel listener can be passive in some browser paths. A
+    // native non-passive listener keeps wheel zoom scoped to the map.
+    const preventPageScroll = (event: WheelEvent) => {
+      event.preventDefault();
+      event.stopPropagation();
+      handleWheel(event as unknown as React.WheelEvent<SVGSVGElement>);
+    };
+    element.addEventListener("wheel", preventPageScroll, { passive: false });
+    return () => element.removeEventListener("wheel", preventPageScroll);
+  });
+
   function handlePointerDown(event: React.PointerEvent<SVGSVGElement>) {
     const point = eventPoint(event);
     if (!point) return;
@@ -381,7 +469,7 @@ export function OpportunityMap({ areas, contextAreas, focusCity, focusLabel, sel
         <div className="map-zoom-controls" aria-label="Map navigation">
           <button aria-label="Zoom in" onClick={() => setBounds((current) => zoomBounds(current, 1.2))} title="Zoom in">+</button>
           <button aria-label="Zoom out" onClick={() => setBounds((current) => zoomBounds(current, 1 / 1.2))} title="Zoom out">−</button>
-          <button aria-label="Fit filtered results" onClick={() => setBounds(boundsFor(areas.length ? areas : contextAreas, focusCity !== "all"))} title="Fit filtered results">Fit results</button>
+          <button aria-label="Fit filtered results" onClick={() => setBounds(isMarketOverview ? boundsForMarketSummaries(marketSummaries) : boundsFor(areas.length ? areas : contextAreas, true))} title="Fit filtered results">Fit results</button>
           <button aria-label="Reset map view" onClick={() => setBounds(baseBounds)} title="Reset map view">Reset</button>
           <button aria-pressed={boxZoomMode} className={boxZoomMode ? "active" : ""} onClick={() => setBoxZoomMode((active) => !active)} title="Highlight an area to zoom in">Box zoom</button>
           <button
@@ -404,7 +492,7 @@ export function OpportunityMap({ areas, contextAreas, focusCity, focusLabel, sel
         <span>Metrics retain their source geography: ACS values use 2020 Census tracts.</span>
         {layer === "opportunity" ? "" : " / DC evidence only"}
         {!evidenceAvailable ? <span id="map-evidence-coverage">Development, flood, and EPA layers are not available for this market.</span> : null}
-        <span>Scroll to zoom; drag to pan; choose Box zoom (or hold Shift) and highlight an area.</span>
+        <span>{isMarketOverview ? "Choose a market to open its tract and county coverage." : mapTruncated ? `Showing the first ${areas.length.toLocaleString()} of ${mapTotal.toLocaleString()} matching tracts. Refine filters for a smaller map.` : "Scroll to zoom; drag to pan; choose Box zoom (or hold Shift) and highlight an area."}</span>
       </div>
       {loading && !areas.length ? (
         <div className="map-loading" role="status">
@@ -422,11 +510,10 @@ export function OpportunityMap({ areas, contextAreas, focusCity, focusLabel, sel
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
-          onWheel={handleWheel}
         >
           <g ref={mapContentRef}>
-          <g aria-hidden="true">{contextPaths.map(({ area, path }) => <path className="map-context-area" d={path} key={`context-${area.id}`} />)}</g>
-          {areaPaths.map(({ area, path }) => (
+          {!isMarketOverview ? <g aria-hidden="true">{contextPaths.map(({ area, path }) => <path className="map-context-area" d={path} key={`context-${area.id}`} />)}</g> : null}
+          {!isMarketOverview ? areaPaths.map(({ area, path }) => (
             <path
               aria-label={layer === "flood" ? `${investorAreaName(area, marketCenters[area.marketId])}, special flood hazard area share ${floodByTract[area.id] ?? "not available"}` : `${investorAreaName(area, marketCenters[area.marketId])}, opportunity score ${area.score ?? "not available"}`}
               className={`map-area ${selectedId === area.id ? "selected" : ""} ${hoveredId === area.id ? "hovered" : ""} ${comparedIds.includes(area.id) ? "compared" : ""}`}
@@ -468,7 +555,25 @@ export function OpportunityMap({ areas, contextAreas, focusCity, focusLabel, sel
               role="button"
               tabIndex={activeAreaId === area.id ? 0 : -1}
             />
-          ))}
+          )) : null}
+          {isMarketOverview ? marketOverview.map((market, index) => {
+            const [cx, cy] = projectPoint(market.longitude, market.latitude, bounds);
+            const width = Math.min(138, Math.max(94, market.city.length * 6.4 + 39));
+            const left = Math.min(MAP_WIDTH - width - 10, Math.max(10, cx + (index % 2 ? 12 : -width - 12)));
+            const top = Math.min(MAP_HEIGHT - 50, Math.max(14, cy - (index % 3 === 0 ? 38 : 13)));
+            const selectMarket = () => onFocusCity(market.marketId as MarketFocus);
+            return (
+              <g className="map-market" key={market.marketId} onClick={selectMarket} onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") { event.preventDefault(); selectMarket(); }
+              }} role="button" tabIndex={0} aria-label={`Open ${market.city}, ${market.stateAbbr}: ${market.tractCount} census tracts across its available counties`}>
+                <circle className="map-market-halo" cx={cx} cy={cy} r={Math.min(17, 8 + Math.sqrt(market.tractCount) / 3)} />
+                <circle className="map-market-dot" cx={cx} cy={cy} r={5.5} fill={scoreColor(market.averageScore)} />
+                <rect className="map-market-card" height="38" rx="8" width={width} x={left} y={top} />
+                <text x={left + 9} y={top + 15}>{market.city}, {market.stateAbbr}</text>
+                <text className="map-market-meta" x={left + 9} y={top + 29}>{market.tractCount.toLocaleString()} tracts · open map</text>
+              </g>
+            );
+          }) : null}
           {layer === "development" ? developmentPins.map((pin) => {
             const [cx, cy] = projectPoint(pin.longitude, pin.latitude, bounds);
             const selectPin = () => setSelectedSignal({ kind: "development" as const, item: pin });
@@ -516,7 +621,14 @@ export function OpportunityMap({ areas, contextAreas, focusCity, focusLabel, sel
               />
             );
           }) : null}
-          {showOrientationLabels ? visibleOrientationLabels.map((label, index) => {
+          {!isMarketOverview && countySummaries.map((county, index) => {
+            const [rawX, rawY] = projectPoint(county.longitude, county.latitude, bounds);
+            const width = Math.min(140, Math.max(84, county.name.length * 5.8 + 20));
+            const x = Math.min(MAP_WIDTH - width - 8, Math.max(8, rawX + (index % 2 ? 8 : -width - 8)));
+            const y = Math.min(MAP_HEIGHT - 37, Math.max(50, rawY + (index % 3 - 1) * 28));
+            return <g className="map-county-label" key={county.name} pointerEvents="none"><rect height="31" rx="7" width={width} x={x} y={y} /><text x={x + 8} y={y + 13}>{county.name}</text><text className="map-county-meta" x={x + 8} y={y + 24}>{county.count.toLocaleString()} covered tracts</text></g>;
+          })}
+          {showOrientationLabels && !isMarketOverview ? visibleOrientationLabels.map((label, index) => {
             const [rawX, rawY] = projectPoint(label.longitude, label.latitude, bounds);
             const width = Math.min(132, Math.max(62, label.name.length * 6.2 + 20));
             const x = Math.min(MAP_WIDTH - width - 8, Math.max(8, rawX + (index % 2 ? 7 : -width - 7)));

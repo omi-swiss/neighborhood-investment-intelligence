@@ -41,7 +41,7 @@ export function PageShell({
             </div>
             {actions ? <div className="actions">{actions}</div> : null}
           </div>
-          <DataVintageNotice items={dataVintages} />
+          <DataVintageNotice coverage={dataset.coverage} items={dataVintages} />
           {children}
         </div>
       </main>

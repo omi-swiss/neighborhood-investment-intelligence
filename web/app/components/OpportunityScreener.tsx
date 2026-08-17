@@ -18,6 +18,7 @@ import {
 import type {
   AreaRecord,
   Coverage,
+  MarketMapSummary,
   MarketDefinition,
   ScreenerFilters,
   SortKey,
@@ -31,7 +32,9 @@ import { appendContext } from "../lib/investor-context";
 type AreaResponse = {
   items: AreaRecord[];
   mapItems: AreaRecord[];
-  mapContextItems: AreaRecord[];
+  marketSummaries: MarketMapSummary[];
+  mapTotal: number;
+  mapTruncated: boolean;
   total: number;
   page: number;
   pageSize: number;
@@ -184,8 +187,8 @@ export function OpportunityScreener({
     [draft.strategyWeights],
   );
   const marketCenters = useMemo(
-    () => buildMarketCenters(response?.mapContextItems ?? response?.mapItems ?? []),
-    [response?.mapContextItems, response?.mapItems],
+    () => buildMarketCenters(response?.mapItems ?? []),
+    [response?.mapItems],
   );
   const selectedMarket = markets.find((market) => market.id === draft.city);
   const propertySearchParams = new URLSearchParams({
@@ -439,7 +442,7 @@ export function OpportunityScreener({
               </div>
             </form>
           </section>
-          <DataVintageNotice />
+          <DataVintageNotice coverage={coverage} />
           {saveMessage ? <p className="status-message" role="status">{saveMessage}</p> : null}
 
           <div className="workspace screener-workspace">
@@ -641,7 +644,10 @@ export function OpportunityScreener({
                   {view !== "table" ? (
                     <OpportunityMap
                       areas={response?.mapItems ?? []}
-                      contextAreas={response?.mapContextItems ?? []}
+                      contextAreas={[]}
+                      marketSummaries={response?.marketSummaries ?? []}
+                      mapTotal={response?.mapTotal ?? 0}
+                      mapTruncated={response?.mapTruncated ?? false}
                       focusCity={filters.city}
                       selectedId={selected?.id ?? null}
                       hoveredId={hoveredId}
@@ -650,6 +656,7 @@ export function OpportunityScreener({
                       focusLabel={markets.find((item) => item.id === filters.city)?.label ?? "All supported cities"}
                       onHover={setHoveredId}
                       onSelect={(area) => selectArea(area, "map")}
+                      onFocusCity={setCityFocus}
                     />
                   ) : null}
                   {view !== "map" ? (

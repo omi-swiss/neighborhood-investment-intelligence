@@ -719,10 +719,13 @@ a {
   overflow: hidden;
   border-right: 1px solid var(--line);
   background:
+    radial-gradient(circle at 72% 24%, rgb(135 183 148 / 22%), transparent 26%),
+    radial-gradient(circle at 21% 78%, rgb(201 156 77 / 16%), transparent 30%),
     linear-gradient(rgb(255 255 255 / 50%), rgb(255 255 255 / 50%)),
     repeating-linear-gradient(0deg, transparent 0 38px, rgb(23 79 60 / 5%) 39px 40px),
     repeating-linear-gradient(90deg, transparent 0 38px, rgb(23 79 60 / 5%) 39px 40px),
     #e7ece2;
+  overscroll-behavior: contain;
 }
 
 .map-svg {
@@ -732,6 +735,63 @@ a {
   min-height: 560px;
   touch-action: none;
   user-select: none;
+  overscroll-behavior: contain;
+}
+
+.map-market {
+  cursor: pointer;
+  outline: none;
+}
+
+.map-market-halo {
+  fill: rgb(23 79 60 / 13%);
+  stroke: rgb(23 79 60 / 24%);
+  stroke-width: 1;
+}
+
+.map-market-dot {
+  stroke: white;
+  stroke-width: 2;
+}
+
+.map-market-card,
+.map-county-label rect {
+  fill: rgb(255 255 255 / 94%);
+  stroke: rgb(23 79 60 / 30%);
+  stroke-width: 0.8;
+  vector-effect: non-scaling-stroke;
+}
+
+.map-market text,
+.map-county-label text {
+  fill: var(--ink);
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.map-market .map-market-meta,
+.map-county-label .map-county-meta {
+  fill: var(--ink-muted);
+  font-size: 8px;
+  font-weight: 600;
+}
+
+.map-market:hover .map-market-card,
+.map-market:focus .map-market-card {
+  fill: var(--pine-deep);
+  stroke: white;
+  stroke-width: 1.5;
+}
+
+.map-market:hover text,
+.map-market:focus text {
+  fill: white;
+}
+
+.map-market:hover .map-market-meta,
+.map-market:focus .map-market-meta {
+  fill: #cfe4d4;
 }
 
 .map-area {

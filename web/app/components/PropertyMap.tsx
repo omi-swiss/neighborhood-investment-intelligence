@@ -79,8 +79,8 @@ export function PropertyMap({
     Promise.all(requestedMarketIds.map((marketId) =>
       fetch(`/api/areas?market=${encodeURIComponent(marketId)}&page=1&pageSize=10`, {
         signal: controller.signal,
-      }).then((response) => response.json() as Promise<{ mapContextItems: AreaRecord[] }>)
-    )).then((payloads) => setAreas(payloads.flatMap((payload) => payload.mapContextItems)))
+      }).then((response) => response.json() as Promise<{ mapItems: AreaRecord[] }>)
+    )).then((payloads) => setAreas(payloads.flatMap((payload) => payload.mapItems)))
       .catch((error: unknown) => {
         if (!(error instanceof DOMException && error.name === "AbortError")) setAreas([]);
       });

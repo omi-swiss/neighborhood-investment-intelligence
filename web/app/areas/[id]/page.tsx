@@ -78,7 +78,7 @@ export default async function AreaDetailPage({ params }: Props) {
         </p>
         {area.nameConfidence !== "high" ? <p className="label-confidence-note">Neighborhood label is approximate and based on tract position. The Census tract remains the auditable geography.</p> : null}
 
-        <DataVintageNotice />
+        <DataVintageNotice coverage={dataset.coverage} />
 
         <div className="detail-grid">
           <section className="detail-card wide-card area-decision-brief">

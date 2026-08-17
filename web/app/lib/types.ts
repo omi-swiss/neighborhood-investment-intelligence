@@ -135,6 +135,17 @@ export type MarketDefinition = {
   coverageStatus: "integrated" | "planned" | "unavailable";
 };
 
+/** Lightweight, derived map-atlas record. It intentionally carries no tract geometry or metrics. */
+export type MarketMapSummary = {
+  marketId: string;
+  city: string;
+  stateAbbr: string;
+  latitude: number;
+  longitude: number;
+  tractCount: number;
+  averageScore: number | null;
+};
+
 export type CohortBenchmark = {
   name: string;
   areaCount: number;

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import dataset from "../data/areas.generated.json";
+import type { Coverage } from "../lib/types";
 
 export type DataVintageItem = {
   label: string;
@@ -7,26 +7,30 @@ export type DataVintageItem = {
   note?: string;
 };
 
-const coreItems: DataVintageItem[] = [
+function coreItems(coverage: Coverage): DataVintageItem[] {
+  return [
   {
     label: "Core tract metrics",
-    value: `ACS ${dataset.coverage.scoreReferenceYear} 5-year`,
-    note: `Trend comparisons use the ACS ${dataset.coverage.trendStartYear} and ${dataset.coverage.scoreReferenceYear} releases.`,
+    value: `ACS ${coverage.scoreReferenceYear} 5-year`,
+    note: `Trend comparisons use the ACS ${coverage.trendStartYear} and ${coverage.scoreReferenceYear} releases.`,
   },
   {
     label: "Map boundaries",
-    value: `${dataset.coverage.geographyVintage} Census tracts`,
+    value: `${coverage.geographyVintage} Census tracts`,
   },
-];
+  ];
+}
 
 export function DataVintageNotice({
   items = [],
   includeCore = true,
+  coverage,
 }: {
   items?: DataVintageItem[];
   includeCore?: boolean;
+  coverage?: Coverage;
 }) {
-  const displayedItems = includeCore ? [...coreItems, ...items] : items;
+  const displayedItems = includeCore && coverage ? [...coreItems(coverage), ...items] : items;
 
   return (
     <aside className="data-vintage-notice" aria-label="Data vintage and freshness">
