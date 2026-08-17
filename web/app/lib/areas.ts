@@ -18,9 +18,10 @@ async function loadStaticJson<T>(pathname: string): Promise<T> {
   // Vinext's rendered-HTML checks run the compiled Worker in Node rather than
   // Workerd, where `cloudflare:workers` is intentionally unavailable.
   if (typeof process !== "undefined" && process.release?.name === "node") {
-    const { readFile } = await import(/* @vite-ignore */ "node:fs/promises") as {
-      readFile: (path: URL, encoding: "utf8") => Promise<string>;
-    };
+    const dynamicImport = new Function("specifier", "return import(specifier);") as (
+      specifier: string,
+    ) => Promise<{ readFile: (path: URL, encoding: "utf8") => Promise<string> }>;
+    const { readFile } = await dynamicImport("node:fs/promises");
     const filename = pathname.split("/").pop();
     return JSON.parse(
       await readFile(new URL(`../data/${filename}`, import.meta.url), "utf8"),
