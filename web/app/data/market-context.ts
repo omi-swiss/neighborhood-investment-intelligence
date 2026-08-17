@@ -14,7 +14,7 @@ export type MarketContext = {
 
 export type MarketMigration = {
   geographyLabel: string;
-  geographyType: "city-county equivalent" | "county proxy";
+  geographyType: "city-county equivalent" | "county proxy" | "multi-county proxy";
   dataYear: "2022–2023";
   inboundPeople: number;
   outboundPeople: number;
@@ -24,6 +24,8 @@ export type MarketMigration = {
   netAgi: number;
   sourceUrl: string;
 };
+
+export type MarketMigrationContext = Pick<MarketContext, "marketId" | "migration">;
 
 export type MarketRegulatoryItem = {
   id: string;
@@ -443,6 +445,56 @@ export const marketContexts: MarketContext[] = [
         citation: "Illinois General Assembly",
       },
     ],
+  },
+];
+
+// IRS publishes county-to-county flows, so city markets spanning multiple counties
+// are explicitly labeled as multi-county proxies rather than implied city totals.
+export const marketMigrationContexts: MarketMigrationContext[] = [
+  ...marketContexts.map(({ marketId, migration }) => ({ marketId, migration })),
+  {
+    marketId: "place:0455000",
+    migration: { geographyLabel: "Maricopa County", geographyType: "county proxy", dataYear: "2022–2023", inboundPeople: 150790, outboundPeople: 146581, netPeople: 4209, inboundAgi: 8138149000, outboundAgi: 6768059000, netAgi: 1370090000, sourceUrl: irsMigrationSource },
+  },
+  {
+    marketId: "place:4819000",
+    migration: { geographyLabel: "Covered city-proper counties (Collin, Dallas, Denton, and Rockwall)", geographyType: "multi-county proxy", dataYear: "2022–2023", inboundPeople: 306510, outboundPeople: 299679, netPeople: 6831, inboundAgi: 16075868000, outboundAgi: 15055913000, netAgi: 1019955000, sourceUrl: irsMigrationSource },
+  },
+  {
+    marketId: "place:4865000",
+    migration: { geographyLabel: "Bexar County", geographyType: "county proxy", dataYear: "2022–2023", inboundPeople: 83133, outboundPeople: 80328, netPeople: 2805, inboundAgi: 2929066000, outboundAgi: 3134031000, netAgi: -204965000, sourceUrl: irsMigrationSource },
+  },
+  {
+    marketId: "place:1245000",
+    migration: { geographyLabel: "Miami-Dade County", geographyType: "county proxy", dataYear: "2022–2023", inboundPeople: 67097, outboundPeople: 107355, netPeople: -40258, inboundAgi: 5584864000, outboundAgi: 5100831000, netAgi: 484033000, sourceUrl: irsMigrationSource },
+  },
+  {
+    marketId: "place:3915000",
+    migration: { geographyLabel: "Hamilton County", geographyType: "county proxy", dataYear: "2022–2023", inboundPeople: 27769, outboundPeople: 32512, netPeople: -4743, inboundAgi: 1237683000, outboundAgi: 1609325000, netAgi: -371642000, sourceUrl: irsMigrationSource },
+  },
+  {
+    marketId: "place:3918000",
+    migration: { geographyLabel: "Covered city-proper counties (Delaware, Fairfield, and Franklin)", geographyType: "multi-county proxy", dataYear: "2022–2023", inboundPeople: 74262, outboundPeople: 78980, netPeople: -4718, inboundAgi: 3188976000, outboundAgi: 3682564000, netAgi: -493588000, sourceUrl: irsMigrationSource },
+  },
+  {
+    marketId: "place:5363000",
+    migration: { geographyLabel: "King County", geographyType: "county proxy", dataYear: "2022–2023", inboundPeople: 94148, outboundPeople: 109084, netPeople: -14936, inboundAgi: 6927090000, outboundAgi: 9122334000, netAgi: -2195244000, sourceUrl: irsMigrationSource },
+  },
+  {
+    marketId: "place:4752006",
+    migration: { geographyLabel: "Davidson County", geographyType: "county proxy", dataYear: "2022–2023", inboundPeople: 44251, outboundPeople: 48296, netPeople: -4045, inboundAgi: 2619356000, outboundAgi: 2500899000, netAgi: 118457000, sourceUrl: irsMigrationSource },
+  },
+  {
+    marketId: "place:0820000",
+    migration: { geographyLabel: "City and County of Denver", geographyType: "city-county equivalent", dataYear: "2022–2023", inboundPeople: 63036, outboundPeople: 66538, netPeople: -3502, inboundAgi: 4034046000, outboundAgi: 4325599000, netAgi: -291553000, sourceUrl: irsMigrationSource },
+  },
+  {
+    marketId: "place:4805000",
+    migration: { geographyLabel: "Covered city-proper counties (Travis and Williamson)", geographyType: "multi-county proxy", dataYear: "2022–2023", inboundPeople: 139081, outboundPeople: 133113, netPeople: 5968, inboundAgi: 8824564000, outboundAgi: 8014260000, netAgi: 810304000, sourceUrl: irsMigrationSource },
+  },
+  {
+    marketId: "place:3651000",
+    migration: { geographyLabel: "NYC's five county-equivalents", geographyType: "multi-county proxy", dataYear: "2022–2023", inboundPeople: 317495, outboundPeople: 444289, netPeople: -126794, inboundAgi: 22699298000, outboundAgi: 30070054000, netAgi: -7370756000, sourceUrl: irsMigrationSource },
   },
 ];
 

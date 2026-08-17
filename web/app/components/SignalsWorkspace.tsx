@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { formatCurrency, formatInteger, formatPercent } from "../lib/area-shared";
-import type { MarketContext } from "../data/market-context";
+import type { MarketContext, MarketMigrationContext } from "../data/market-context";
 import { marketCounty } from "../lib/market-geography";
 
 export type MarketProfile = {
@@ -51,11 +51,13 @@ export function SignalsWorkspace({
   profiles,
   events,
   contexts,
+  migrations,
 }: {
   generatedAt: string;
   profiles: MarketProfile[];
   events: SignalEvent[];
   contexts: MarketContext[];
+  migrations: MarketMigrationContext[];
 }) {
   const [marketId, setMarketId] = useState(profiles[0]?.marketId ?? "");
   const [category, setCategory] = useState("all");
@@ -68,6 +70,7 @@ export function SignalsWorkspace({
   const [whyMetric, setWhyMetric] = useState<"migration" | "agi" | null>(null);
   const profile = profiles.find((item) => item.marketId === marketId) ?? profiles[0];
   const context = contexts.find((item) => item.marketId === marketId);
+  const migration = migrations.find((item) => item.marketId === marketId)?.migration;
   const county = marketCounty(marketId);
   const filteredEvents = useMemo(() => events.filter((event) =>
     event.marketId === marketId &&
@@ -124,18 +127,19 @@ export function SignalsWorkspace({
           <ProfileMetric label="Median age" value={profile.medianAge?.toFixed(1) ?? "Not available"} note="Median across comparable tracts" />
           <ProfileMetric label="Household income" value={formatCurrency(profile.medianHouseholdIncome)} note="Inflation-adjusted tract median" />
           <ProfileMetric label="Home value" value={formatCurrency(profile.medianHomeValue)} note="Owner-occupied housing proxy" />
-          <ProfileMetric label="Median rent" value={formatCurrency(profile.medianRent)} note={`${formatPercent(profile.vacancyRate)} median vacancy`} />
+          <ProfileMetric label="Typical tract median rent" value={formatCurrency(profile.medianRent)} note={`ACS gross rent; unweighted tract median · ${formatPercent(profile.vacancyRate)} vacancy`} />
           <ProfileMetric label="Renter share" value={formatPercent(profile.renterShare)} note="Tenure mix" />
           <ProfileMetric label="Economic risk" value={formatPercent(profile.unemploymentRate)} note={`${formatPercent(profile.povertyRate)} poverty`} />
           <ProfileMetric
             label="Net migration"
-            value={context ? formatSignedInteger(context.migration.netPeople) : "Not available"}
-            note={context
-              ? `IRS ${context.migration.dataYear} · ${formatInteger(context.migration.inboundPeople)} in · ${formatInteger(context.migration.outboundPeople)} out`
+            value={migration ? formatSignedInteger(migration.netPeople) : "Not available"}
+            note={migration
+              ? `IRS ${migration.dataYear} · ${formatInteger(migration.inboundPeople)} in · ${formatInteger(migration.outboundPeople)} out`
               : "IRS migration data unavailable"}
           />
         </div>
-        {context ? <div className="method-note"><strong>{context.migration.geographyType === "county proxy" ? `PROXY · ${context.migration.geographyLabel}` : `OBSERVED COUNTY-EQUIVALENT · ${context.migration.geographyLabel}`}</strong> · IRS {context.migration.dataYear} · published March 19, 2026. <button className="text-button" onClick={() => setWhyMetric("migration")}>Why these migration values?</button></div> : null}
+        <p className="method-note">Typical tract median rent is an unweighted summary of ACS B25064 tract estimates. It is not a citywide median or a current asking-rent estimate.</p>
+        {migration ? <div className="method-note"><strong>{migrationStatus(migration.geographyType)} · {migration.geographyLabel}</strong> · IRS {migration.dataYear} · published March 19, 2026. <button className="text-button" onClick={() => setWhyMetric("migration")}>Why these migration values?</button></div> : null}
         {context ? (
           <div className="city-context-grid">
             <article className="context-card">
@@ -153,18 +157,23 @@ export function SignalsWorkspace({
               <strong>Relative rank {context.landlordFriendlinessRank}</strong>
               <small>{context.landlordEnvironment}. Relative screening rank based on statewide landlord-tenant procedure and city operating requirements.</small>
             </article>
-            <article className="context-card migration-context">
+            {migration ? <article className="context-card migration-context">
               <span>Income carried by movers</span>
-              <strong className={context.migration.netAgi >= 0 ? "signal-positive" : "signal-negative"}>
-                {formatSignedCurrency(context.migration.netAgi)} net AGI
+              <strong className={migration.netAgi >= 0 ? "signal-positive" : "signal-negative"}>
+                {formatSignedCurrency(migration.netAgi)} net AGI
               </strong>
               <small>
-                {formatCompactCurrency(context.migration.inboundAgi)} moved in and {formatCompactCurrency(context.migration.outboundAgi)} moved out during {context.migration.dataYear}. {context.migration.geographyLabel} is a {context.migration.geographyType}.
+                {formatCompactCurrency(migration.inboundAgi)} moved in and {formatCompactCurrency(migration.outboundAgi)} moved out during {migration.dataYear}. {migration.geographyLabel} is a {migration.geographyType}.
               </small>
               <button className="text-button" onClick={() => setWhyMetric("agi")}>Why this value?</button>
-            </article>
+            </article> : null}
           </div>
-        ) : null}
+        ) : migration ? <div className="city-context-grid"><article className="context-card migration-context">
+          <span>Income carried by movers</span>
+          <strong className={migration.netAgi >= 0 ? "signal-positive" : "signal-negative"}>{formatSignedCurrency(migration.netAgi)} net AGI</strong>
+          <small>{formatCompactCurrency(migration.inboundAgi)} moved in and {formatCompactCurrency(migration.outboundAgi)} moved out during {migration.dataYear}. {migration.geographyLabel} is a {migration.geographyType}.</small>
+          <button className="text-button" onClick={() => setWhyMetric("agi")}>Why this value?</button>
+        </article></div> : null}
         <p className="method-note">
           Migration uses IRS address changes on tax returns: returns approximate households, exemptions
           approximate people, and AGI measures income carried by movers. County proxies are clearly labeled
@@ -173,22 +182,22 @@ export function SignalsWorkspace({
         </p>
       </section>
 
-      {context && whyMetric ? (
+      {migration && whyMetric ? (
         <>
           <button className="drawer-backdrop" aria-label="Close metric details" onClick={() => setWhyMetric(null)} />
           <section className="drawer" aria-labelledby="metric-lineage-title" aria-modal="true" role="dialog">
             <button className="drawer-close" aria-label="Close metric details" onClick={() => setWhyMetric(null)}>×</button>
             <p className="eyebrow">Why this value?</p>
             <h2 id="metric-lineage-title">{whyMetric === "migration" ? "Net migration" : "Net AGI"}</h2>
-            <p className="drawer-lead">{context.migration.geographyType === "county proxy" ? "Proxy for the selected city market" : "Selected market is a county-equivalent"}: {context.migration.geographyLabel}{county ? ` (GEOID ${county.countyGeoid})` : ""}.</p>
+            <p className="drawer-lead">{migration.geographyType === "city-county equivalent" ? "Selected market is a county-equivalent" : "Proxy for the selected city market"}: {migration.geographyLabel}{county ? ` (GEOID ${county.countyGeoid})` : ""}.</p>
             <div className="source-list">
-              <div className="source-item"><strong>Status</strong><span>{context.migration.geographyType === "county proxy" ? "PROXY" : "OBSERVED county-equivalent flow"}</span></div>
+              <div className="source-item"><strong>Status</strong><span>{migrationStatus(migration.geographyType)}</span></div>
               <div className="source-item"><strong>Observation period</strong><span>IRS address changes from returns processed in 2022–2023; not a city annual estimate.</span></div>
               <div className="source-item"><strong>Publication date</strong><span>March 19, 2026</span></div>
-              <div className="source-item"><strong>Calculation</strong><span>{whyMetric === "migration" ? `${formatInteger(context.migration.inboundPeople)} inbound people − ${formatInteger(context.migration.outboundPeople)} outbound people = ${formatSignedInteger(context.migration.netPeople)}.` : `(${formatCompactCurrency(context.migration.inboundAgi)} inbound AGI − ${formatCompactCurrency(context.migration.outboundAgi)} outbound AGI) = ${formatSignedCurrency(context.migration.netAgi)}. IRS source AGI is reported in thousands and displayed here in dollars.`}</span></div>
-              <div className="source-item"><strong>Limitation</strong><span>IRS migration covers tax-return filers and can be suppressed or rounded. Raw source rows and retrieval checksum are not yet retained in this web artifact.</span></div>
+              <div className="source-item"><strong>Calculation</strong><span>{whyMetric === "migration" ? `${formatInteger(migration.inboundPeople)} inbound people − ${formatInteger(migration.outboundPeople)} outbound people = ${formatSignedInteger(migration.netPeople)}.` : `(${formatCompactCurrency(migration.inboundAgi)} inbound AGI − ${formatCompactCurrency(migration.outboundAgi)} outbound AGI) = ${formatSignedCurrency(migration.netAgi)}. IRS source AGI is reported in thousands and displayed here in dollars.`}</span></div>
+              <div className="source-item"><strong>Limitation</strong><span>IRS migration covers tax-return filers and can be suppressed or rounded. Multi-county proxies sum the listed county flows and are not exact city-boundary counts.</span></div>
             </div>
-            <a className="button primary" href={context.migration.sourceUrl} target="_blank" rel="noreferrer">Open IRS source</a>
+            <a className="button primary" href={migration.sourceUrl} target="_blank" rel="noreferrer">Open IRS source</a>
           </section>
         </>
       ) : null}
@@ -319,4 +328,10 @@ function formatSignedCurrency(value: number) {
 
 function formatSignedInteger(value: number) {
   return `${value >= 0 ? "+" : "−"}${formatInteger(Math.abs(value))} people`;
+}
+
+function migrationStatus(geographyType: MarketMigrationContext["migration"]["geographyType"]) {
+  if (geographyType === "city-county equivalent") return "OBSERVED COUNTY-EQUIVALENT";
+  if (geographyType === "multi-county proxy") return "MULTI-COUNTY PROXY";
+  return "PROXY";
 }

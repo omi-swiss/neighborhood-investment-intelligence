@@ -66,6 +66,10 @@ When no city is selected, `OpportunityMap.tsx` renders a national market atlas r
 
 The atlas and tract map share the same SVG scene. `map-market` is the keyboard-operable market target; `map-county-label` is supplementary, non-interactive context. A native non-passive wheel listener plus `overscroll-behavior: contain` keeps wheel zoom within the map, while drag and touch stay map-local through `touch-action: none`. Keep the textual table as the equivalent selection path and do not reintroduce a hover-only market action.
 
+### Quiet map overlays
+
+The filter controls and geometry note (`.map-controls`, `.map-note`) use a quiet, translucent resting state so the map remains legible. Each becomes fully opaque on pointer hover or keyboard focus within; touch-only devices remain fully opaque, and reduced-motion preferences remove the transition. This is a visual-priority treatment only: controls retain their labels and keyboard operation, and the note remains readable without hover.
+
 The screener API keeps this interaction performant: the all-market atlas receives only derived market summaries, not tract geometry. A focused city map receives at most 1,200 matching tract records and visibly discloses when filters match more. Table rows remain paginated detailed records. Do not add an import of `areas.generated.json` to a client component; pass the small coverage or metadata fields it needs as props.
 
 ### Boundary-vintage disclosure

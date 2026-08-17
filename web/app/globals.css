@@ -866,6 +866,15 @@ a {
   background: rgb(255 255 255 / 94%);
   padding: 4px;
   box-shadow: 0 7px 24px rgb(20 40 29 / 10%);
+  opacity: 0.38;
+  transition: opacity 160ms ease;
+}
+
+.map-controls:hover,
+.map-controls:focus-within,
+.map-note:hover,
+.map-note:focus-within {
+  opacity: 1;
 }
 
 .map-zoom-controls {
@@ -915,6 +924,22 @@ a {
   max-width: min(460px, calc(100% - 24px));
   font-size: 11.5px;
   line-height: 1.4;
+  opacity: 0.38;
+  transition: opacity 160ms ease;
+}
+
+@media (hover: none) {
+  .map-controls,
+  .map-note {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .map-controls,
+  .map-note {
+    transition: none;
+  }
 }
 
 .map-note span {

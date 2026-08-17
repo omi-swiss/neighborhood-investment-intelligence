@@ -407,6 +407,16 @@ test("returns filtered, paginated real-data area records", async () => {
   assert.equal(payload.filters.city, "place:1150000");
 });
 
+test("returns a lightweight market atlas for the default screener map", async () => {
+  const response = await request("/api/areas?page=1&pageSize=20");
+  assert.equal(response.status, 200);
+  const payload = await response.json();
+  assert.equal(payload.mapItems.length, 0);
+  assert.equal(payload.marketSummaries.length, 20);
+  assert.ok(payload.marketSummaries.every((market) => market.tractCount > 0));
+  assert.ok(payload.marketSummaries.every((market) => Number.isFinite(market.latitude) && Number.isFinite(market.longitude)));
+});
+
 test("renders a real tract detail route with provenance", async () => {
   const areasResponse = await request("/api/areas?page=1&pageSize=10");
   const { items } = await areasResponse.json();

@@ -20,7 +20,7 @@ const secondary = [
 export function AppNavigation({ active = "Discover Markets" }: { active?: string }) {
   return (
     <aside className="side-nav" aria-label="Primary navigation">
-      <Link className="brand" href="/" aria-label="Neighborhood Investment Intelligence home">
+      <Link className="brand" href="/" prefetch={false} aria-label="Neighborhood Investment Intelligence home">
         <span className="brand-mark">NII</span>
         <span className="brand-copy">
           <strong>Neighborhood</strong>
@@ -34,6 +34,7 @@ export function AppNavigation({ active = "Discover Markets" }: { active?: string
           className={`nav-item ${active === label ? "active" : ""}`}
           href={href}
           key={label}
+          prefetch={false}
         >
           <span className="nav-icon" aria-hidden="true">{icon}</span>
           <span>{label}</span>
@@ -46,6 +47,7 @@ export function AppNavigation({ active = "Discover Markets" }: { active?: string
           className={`nav-item ${active === label ? "active" : ""}`}
           href={href}
           key={label}
+          prefetch={false}
         >
           <span className="nav-icon" aria-hidden="true">{icon}</span>
           <span>{label}</span>

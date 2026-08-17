@@ -500,7 +500,7 @@ export function OpportunityMap({ areas, contextAreas, marketSummaries, mapTotal,
           <strong>Preparing the opportunity map</strong>
           <small>Loading boundaries and opportunity scores…</small>
         </div>
-      ) : contextAreas.length || areas.length ? (
+      ) : contextAreas.length || areas.length || marketSummaries.length ? (
         <svg
           className="map-svg"
           ref={svgRef}

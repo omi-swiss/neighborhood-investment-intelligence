@@ -5,7 +5,7 @@ import datasetJson from "../data/areas.generated.json";
 import type { AreaDataset } from "../lib/types";
 import { phase8 } from "../lib/phase8";
 import { remainingGaps } from "../lib/remaining-gaps";
-import { curatedMarketEvents, marketContexts } from "../data/market-context";
+import { curatedMarketEvents, marketContexts, marketMigrationContexts } from "../data/market-context";
 import { federalCommunityDevelopmentEvents } from "../data/signal-sources";
 
 export const metadata: Metadata = { title: "Signals & services" };
@@ -145,6 +145,7 @@ export default function SignalsPage() {
         profiles={profiles}
         events={events}
         contexts={marketContexts}
+        migrations={marketMigrationContexts}
       />
     </PageShell>
   );

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { PageShell } from "../components/PageShell";
 import dataset from "../data/areas.generated.json";
-import { marketContexts } from "../data/market-context";
+import { marketContexts, marketMigrationContexts } from "../data/market-context";
 import { propertyMarketDirectory } from "../data/property-markets";
 import { marketOpenDataSources, signalSources } from "../data/signal-sources";
 
@@ -197,15 +197,16 @@ export default function SourcesPage() {
             <table className="comparison-table">
               <thead><tr><th>Market</th><th>Property tax</th><th>Migration</th><th>Election context</th><th>Landlord law</th></tr></thead>
               <tbody>
-                {marketContexts.map((context) => (
-                  <tr key={context.marketId}>
-                    <td><strong>{marketNames.get(context.marketId) ?? context.marketId}</strong></td>
-                    <td><a className="source-link" href={context.propertyTaxSourceUrl} target="_blank" rel="noreferrer">ACS {context.propertyTaxYear}</a></td>
-                    <td><a className="source-link" href={context.migration.sourceUrl} target="_blank" rel="noreferrer">IRS {context.migration.dataYear}</a></td>
-                    <td><a className="source-link" href={context.politicalSourceUrl} target="_blank" rel="noreferrer">Official results</a></td>
-                    <td><a className="source-link" href={context.landlordSourceUrl} target="_blank" rel="noreferrer">Official law</a></td>
+                {marketMigrationContexts.map((migrationContext) => {
+                  const context = marketContexts.find((item) => item.marketId === migrationContext.marketId);
+                  return <tr key={migrationContext.marketId}>
+                    <td><strong>{marketNames.get(migrationContext.marketId) ?? migrationContext.marketId}</strong></td>
+                    <td>{context ? <a className="source-link" href={context.propertyTaxSourceUrl} target="_blank" rel="noreferrer">ACS {context.propertyTaxYear}</a> : "Not yet verified"}</td>
+                    <td><a className="source-link" href={migrationContext.migration.sourceUrl} target="_blank" rel="noreferrer">IRS {migrationContext.migration.dataYear}</a></td>
+                    <td>{context ? <a className="source-link" href={context.politicalSourceUrl} target="_blank" rel="noreferrer">Official results</a> : "Not yet verified"}</td>
+                    <td>{context ? <a className="source-link" href={context.landlordSourceUrl} target="_blank" rel="noreferrer">Official law</a> : "Not yet verified"}</td>
                   </tr>
-                ))}
+                })}
               </tbody>
             </table>
           </div>
