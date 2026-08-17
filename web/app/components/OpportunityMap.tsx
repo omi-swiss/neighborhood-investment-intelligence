@@ -87,14 +87,23 @@ function rings(area: AreaRecord): number[][][] {
 }
 
 function boundsFor(areas: AreaRecord[], cityFocused = false): MapBounds {
-  const points = areas.flatMap((area) => rings(area).flat());
-  if (!points.length) return { west: -77.12, east: -76.9, south: 38.79, north: 39.01 };
-  const longitudes = points.map((point) => point[0]);
-  const latitudes = points.map((point) => point[1]);
-  const west = Math.min(...longitudes);
-  const east = Math.max(...longitudes);
-  const south = Math.min(...latitudes);
-  const north = Math.max(...latitudes);
+  let west = Number.POSITIVE_INFINITY;
+  let east = Number.NEGATIVE_INFINITY;
+  let south = Number.POSITIVE_INFINITY;
+  let north = Number.NEGATIVE_INFINITY;
+  let hasPoints = false;
+  for (const area of areas) {
+    for (const ring of rings(area)) {
+      for (const [longitude, latitude] of ring) {
+        west = Math.min(west, longitude);
+        east = Math.max(east, longitude);
+        south = Math.min(south, latitude);
+        north = Math.max(north, latitude);
+        hasPoints = true;
+      }
+    }
+  }
+  if (!hasPoints) return { west: -77.12, east: -76.9, south: 38.79, north: 39.01 };
   const paddingRatio = cityFocused ? 0.14 : 0.06;
   const longitudePadding = Math.max((east - west) * paddingRatio, 0.015);
   const latitudePadding = Math.max((north - south) * paddingRatio, 0.015);
