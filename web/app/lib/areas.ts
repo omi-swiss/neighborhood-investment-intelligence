@@ -11,7 +11,11 @@ import type {
 } from "./types";
 import { marketCounty } from "./market-geography";
 
-const staticAssetOrigin = "https://nii-static-assets.invalid";
+// Asset bindings resolve against a concrete request origin. Sites provides this
+// stable production hostname; a custom domain can override it at deploy time.
+const staticAssetOrigin =
+  process.env.NII_STATIC_ASSET_ORIGIN ??
+  "https://neighborhood-investment-intelligence.omi123.chatgpt.site";
 let datasetPromise: Promise<AreaDataset> | undefined;
 
 async function loadStaticJson<T>(pathname: string): Promise<T> {
@@ -23,7 +27,7 @@ async function loadStaticJson<T>(pathname: string): Promise<T> {
     };
     const filename = pathname.split("/").pop();
     return JSON.parse(
-      await readFile(new URL(`../data/${filename}`, import.meta.url), "utf8"),
+      await readFile(new URL(`../client/data/${filename}`, import.meta.url), "utf8"),
     ) as T;
   }
   const { env } = await import("cloudflare:workers");
