@@ -8,8 +8,7 @@ import {
   savedSearches,
   watchlistItems,
 } from "../../../../db/schema";
-import { getArea } from "../../../lib/areas";
-import { loadDataset } from "../../../lib/areas";
+import { dataset, getArea } from "../../../lib/areas";
 import {
   areaSnapshot,
   detectMonitoringChanges,
@@ -68,12 +67,11 @@ export async function POST(request: Request) {
     db.select().from(savedSearches).where(eq(savedSearches.userEmail, email)),
   ]);
   const propertyMap = new Map(
-    (await Promise.all(propertyRows.map(async (row) => {
-      const property = { ...row, derived: await deriveProperty(row) };
+    propertyRows.map((row) => {
+      const property = { ...row, derived: deriveProperty(row) };
       return [String(row.id), property] as const;
-    }))),
+    }),
   );
-  const dataset = await loadDataset();
   const ruleMap = new Map(rules.map((rule) => [`${rule.entityType}:${rule.entityKey}`, rule]));
   const now = new Date().toISOString();
   let created = 0;
@@ -86,7 +84,7 @@ export async function POST(request: Request) {
     const previous = parseObject(item.snapshotJson);
     let current: Record<string, unknown> | null = null;
     if (item.entityType === "area") {
-      const area = await getArea(item.entityKey);
+      const area = getArea(item.entityKey);
       if (area) current = areaSnapshot(area, String(dataset.coverage.scoreReferenceYear));
     } else if (item.entityType === "property") {
       const property = propertyMap.get(item.entityKey);

@@ -1,3 +1,5 @@
+import datasetJson from "../data/areas.generated.json";
+import displayGeometryJson from "../data/display-geography.generated.json";
 import type {
   AreaDataset,
   AreaRecord,
@@ -11,57 +13,29 @@ import type {
 } from "./types";
 import { marketCounty } from "./market-geography";
 
-const staticAssetOrigin = "https://nii-static-assets.invalid";
-let datasetPromise: Promise<AreaDataset> | undefined;
-
-async function loadStaticJson<T>(pathname: string): Promise<T> {
-  // Vinext's rendered-HTML checks run the compiled Worker in Node rather than
-  // Workerd, where `cloudflare:workers` is intentionally unavailable.
-  if (typeof process !== "undefined" && process.release?.name === "node") {
-    const dynamicImport = new Function("specifier", "return import(specifier);") as (
-      specifier: string,
-    ) => Promise<{ readFile: (path: URL, encoding: "utf8") => Promise<string> }>;
-    const { readFile } = await dynamicImport("node:fs/promises");
-    const filename = pathname.split("/").pop();
-    return JSON.parse(
-      await readFile(new URL(`../data/${filename}`, import.meta.url), "utf8"),
-    ) as T;
-  }
-  const { env } = await import("cloudflare:workers");
-  const response = await env.ASSETS.fetch(
-    new Request(new URL(pathname, staticAssetOrigin)),
-  );
-  if (!response.ok) {
-    throw new Error(`Market data asset ${pathname} is unavailable (${response.status}).`);
-  }
-  return response.json() as Promise<T>;
-}
-
-export function loadDataset(): Promise<AreaDataset> {
-  datasetPromise ??= Promise.all([
-    loadStaticJson<AreaDataset>("/data/areas.generated.json"),
-    loadStaticJson<{ displayGeographyVintage: string; areas: Record<string, AreaRecord["geometry"]> }>(
-      "/data/display-geography.generated.json",
-    ),
-  ]).then(([rawDataset, displayGeometry]) => ({
-    ...rawDataset,
-    areas: rawDataset.areas.map((area) => {
-      const county = marketCounty(area.marketId);
-      const currentGeometry = displayGeometry.areas[area.id];
-      return {
-        ...area,
-        geometry: currentGeometry ?? area.geometry,
-        geometryVintage: currentGeometry
-          ? displayGeometry.displayGeographyVintage
-          : rawDataset.coverage.geographyVintage,
-        tractGeoid: area.tractGeoid ?? area.id,
-        countyGeoid: area.countyGeoid ?? county?.countyGeoid,
-        countyType: area.countyType ?? county?.countyType,
-      };
-    }),
-  }));
-  return datasetPromise;
-}
+const rawDataset = datasetJson as AreaDataset;
+const displayGeometry = displayGeometryJson as {
+  displayGeographyVintage: string;
+  areas: Record<string, AreaRecord["geometry"]>;
+};
+export const dataset: AreaDataset = {
+  ...rawDataset,
+  areas: rawDataset.areas.map((area) => {
+    const county = marketCounty(area.marketId);
+    const currentGeometry = displayGeometry.areas[area.id];
+    return {
+      ...area,
+      geometry: currentGeometry ?? area.geometry,
+      geometryVintage: currentGeometry
+        ? displayGeometry.displayGeographyVintage
+        : rawDataset.coverage.geographyVintage,
+      tractGeoid: area.tractGeoid ?? area.id,
+      countyGeoid: area.countyGeoid ?? county?.countyGeoid,
+      countyType: area.countyType ?? county?.countyType,
+    };
+  }),
+};
+export const supportedMarkets = dataset.markets;
 
 export const scoreDefinitions: Array<{
   key: ScoreKey;
@@ -240,8 +214,7 @@ export function weightedAreaScore(
   return denominator > 0 ? Math.round((numerator / denominator) * 10) / 10 : null;
 }
 
-export async function filterAreas(filters: ScreenerFilters): Promise<AreaRecord[]> {
-  const dataset = await loadDataset();
+export function filterAreas(filters: ScreenerFilters): AreaRecord[] {
   const query = filters.search.trim().toLowerCase();
   return dataset.areas
     .map((area) => ({
@@ -268,21 +241,18 @@ export async function filterAreas(filters: ScreenerFilters): Promise<AreaRecord[
     .sort((left, right) => compareAreas(left, right, filters));
 }
 
-export async function getMapContextAreas(market: MarketFocus): Promise<AreaRecord[]> {
-  const dataset = await loadDataset();
+export function getMapContextAreas(market: MarketFocus): AreaRecord[] {
   return market === "all"
     ? dataset.areas
     : dataset.areas.filter((area) => area.marketId === market);
 }
 
-export async function getMarket(marketId: MarketFocus): Promise<MarketDefinition | null> {
-  const dataset = await loadDataset();
+export function getMarket(marketId: MarketFocus): MarketDefinition | null {
   if (marketId === "all") return null;
   return dataset.markets.find((market) => market.id === marketId) ?? null;
 }
 
-export async function getArea(areaId: string): Promise<AreaRecord | undefined> {
-  const dataset = await loadDataset();
+export function getArea(areaId: string): AreaRecord | undefined {
   return dataset.areas.find((area) => area.id === areaId);
 }
 

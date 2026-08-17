@@ -2,8 +2,7 @@ import { and, desc, eq } from "drizzle-orm";
 import { getDb } from "../../../db";
 import { ensureSchema } from "../../../db/initialize";
 import { alertRules, properties, watchlistItems, watchlists } from "../../../db/schema";
-import { getArea } from "../../lib/areas";
-import { loadDataset } from "../../lib/areas";
+import { dataset, getArea } from "../../lib/areas";
 import {
   areaSnapshot,
   defaultEventsByEntity,
@@ -115,7 +114,7 @@ export async function POST(request: Request) {
   let label: string;
   let snapshot: Record<string, unknown>;
   if (entityType === "area") {
-    const [area, dataset] = await Promise.all([getArea(entityKey), loadDataset()]);
+    const area = getArea(entityKey);
     if (!area) return Response.json({ error: "Area not found." }, { status: 404 });
     label = `${area.name}, ${area.county}`;
     snapshot = areaSnapshot(area, String(dataset.coverage.scoreReferenceYear));
@@ -131,7 +130,7 @@ export async function POST(request: Request) {
       .limit(1);
     if (!row) return Response.json({ error: "Property not found." }, { status: 404 });
     label = `${row.address}, ${row.city}`;
-    snapshot = propertySnapshot({ ...row, derived: await deriveProperty(row) });
+    snapshot = propertySnapshot({ ...row, derived: deriveProperty(row) });
   }
 
   const now = new Date().toISOString();

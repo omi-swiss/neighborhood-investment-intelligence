@@ -10,10 +10,6 @@ The default is a hybrid open-data architecture: the local Phase 1 runtime uses P
 
 Raw storage is append-only and checksummed; metadata captures sources/runs/assets; Parquet is the analytical interchange; GeoPandas is only batch ingest and PostGIS performs production spatial joins; a cron/container job is sufficient initially, with Prefect deferred until backfills and cross-source dependency management justify it. FastAPI and mapping/BI are deferred until Phase 8.
 
-## Web artifact delivery
-
-The deployed web worker does not bundle the large tract-profile and display-geometry JSON artifacts. The build publishes them as versioned static assets, and market, map, area-detail, comparison, and tract-aware property workflows load them on demand through the worker asset binding. Small cross-site metadata remains code-native. This keeps ordinary route changes from paying the initialization cost of the full geometry while retaining the same GEOID-keyed evidence contract and release provenance.
-
 ```mermaid
 erDiagram
   SOURCE_CATALOG ||--o{ INGESTION_RUN : records

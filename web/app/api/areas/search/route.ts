@@ -1,10 +1,9 @@
-import { loadDataset } from "../../../lib/areas";
+import { dataset } from "../../../lib/areas";
 
 export async function GET(request: Request) {
   const query = new URL(request.url).searchParams.get("q")?.trim().toLowerCase() ?? "";
   if (query.length < 2) return Response.json({ items: [] });
 
-  const dataset = await loadDataset();
   const contexts = dataset.markets.map((market) => ({
     id: market.id,
     level: market.geographyType,

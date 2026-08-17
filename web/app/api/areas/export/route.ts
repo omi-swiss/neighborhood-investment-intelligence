@@ -9,7 +9,7 @@ function csvCell(value: string | number | null): string {
 export async function GET(request: Request) {
   const search = new URL(request.url).searchParams;
   const filters = filtersFromSearch(search);
-  const rows = await filterAreas(filters);
+  const rows = filterAreas(filters);
   const header = [
     "tract_geoid",
     "market_id",

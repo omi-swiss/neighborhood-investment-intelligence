@@ -19,8 +19,8 @@ export async function GET(request: Request) {
     "favorability_score", "data_completeness", "tract_geoid", "source_name",
     "source_license", "source_url", "observed_at",
   ];
-  const lines = await Promise.all(rows.map(async (property) => {
-    const derived = await deriveProperty(property);
+  const lines = rows.map((property) => {
+    const derived = deriveProperty(property);
     return [
       property.id, property.sourceRecordId, property.address, property.city, property.county,
       property.state, property.postalCode, property.propertyType, property.unitCount,
@@ -29,7 +29,7 @@ export async function GET(request: Request) {
       derived.favorabilityScore, derived.dataCompleteness, property.tractGeoid,
       property.sourceName, property.sourceLicense, property.sourceUrl, property.observedAt,
     ].map(csvCell).join(",");
-  }));
+  });
   return new Response([headers.join(","), ...lines].join("\r\n"), {
     headers: {
       "Content-Type": "text/csv; charset=utf-8",

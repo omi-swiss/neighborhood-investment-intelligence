@@ -33,5 +33,5 @@ export async function GET(request: Request, { params }: Context) {
     )
     .orderBy(desc(propertyListingHistory.observedAt))
     .limit(100);
-  return Response.json({ item: { ...property, derived: await deriveProperty(property) }, history });
+  return Response.json({ item: { ...property, derived: deriveProperty(property) }, history });
 }
