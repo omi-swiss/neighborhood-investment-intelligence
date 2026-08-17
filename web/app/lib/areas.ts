@@ -30,7 +30,10 @@ async function loadStaticJson<T>(pathname: string): Promise<T> {
       await readFile(new URL(`../client/data/${filename}`, import.meta.url), "utf8"),
     ) as T;
   }
-  const response = await fetch(new URL(pathname, staticAssetOrigin));
+  const { env } = await import("cloudflare:workers");
+  const response = await env.ASSETS.fetch(
+    new Request(new URL(pathname, staticAssetOrigin)),
+  );
   if (!response.ok) {
     throw new Error(`Market data asset ${pathname} is unavailable (${response.status}).`);
   }
