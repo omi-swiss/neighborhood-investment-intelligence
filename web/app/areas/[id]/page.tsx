@@ -5,11 +5,11 @@ import { SaveAreaButton } from "../../components/SaveAreaButton";
 import { WatchEntityButton } from "../../components/WatchEntityButton";
 import { DataVintageNotice } from "../../components/DataVintageNotice";
 import {
-  dataset,
   formatCurrency,
   formatInteger,
   formatPercent,
   getArea,
+  loadDataset,
   scoreDefinitions,
 } from "../../lib/areas";
 import { remainingGaps } from "../../lib/remaining-gaps";
@@ -17,15 +17,10 @@ import { areaDecisionInsight, buildMarketCenters, investorAreaName } from "../..
 import { appendContext } from "../../lib/investor-context";
 
 type Props = { params: Promise<{ id: string }> };
-const marketCenters = buildMarketCenters(dataset.areas);
-
-export function generateStaticParams() {
-  return dataset.areas.map((area) => ({ id: area.id }));
-}
-
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
-  const area = getArea(id);
+  const [dataset, area] = await Promise.all([loadDataset(), getArea(id)]);
+  const marketCenters = buildMarketCenters(dataset.areas);
   const areaName = area ? investorAreaName(area, marketCenters[area.marketId]) : "Area not found";
   return area
     ? {
@@ -37,8 +32,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function AreaDetailPage({ params }: Props) {
   const { id } = await params;
-  const area = getArea(id);
+  const [dataset, area] = await Promise.all([loadDataset(), getArea(id)]);
   if (!area) notFound();
+  const marketCenters = buildMarketCenters(dataset.areas);
   const areaName = investorAreaName(area, marketCenters[area.marketId]);
   const insight = areaDecisionInsight(area);
   const propertyResearchUrl = appendContext("/properties", {

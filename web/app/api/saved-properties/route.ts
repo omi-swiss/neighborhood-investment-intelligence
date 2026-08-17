@@ -17,10 +17,10 @@ export async function GET(request: Request) {
     .where(and(eq(savedProperties.userEmail, email), eq(properties.userEmail, email)))
     .orderBy(desc(savedProperties.createdAt));
   return Response.json({
-    items: rows.map(({ saved, property }) => ({
+    items: await Promise.all(rows.map(async ({ saved, property }) => ({
       ...saved,
-      property: { ...property, derived: deriveProperty(property) },
-    })),
+      property: { ...property, derived: await deriveProperty(property) },
+    }))),
   });
 }
 

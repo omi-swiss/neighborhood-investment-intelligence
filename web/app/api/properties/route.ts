@@ -31,8 +31,8 @@ export async function GET(request: Request) {
     .from(properties)
     .where(eq(properties.userEmail, email))
     .orderBy(desc(properties.updatedAt));
-  const filtered = rows
-    .map((property) => ({ ...property, derived: deriveProperty(property) }))
+  const filtered = (await Promise.all(rows
+    .map(async (property) => ({ ...property, derived: await deriveProperty(property) }))))
     .filter((property) => {
       const haystack = [
         property.address,

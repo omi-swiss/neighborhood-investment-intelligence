@@ -21,10 +21,7 @@ export default async function ComparePage({ searchParams }: Props) {
     .map((value) => value.trim())
     .filter(Boolean)
     .slice(0, 4);
-  const areas = ids.flatMap((id) => {
-    const area = getArea(id);
-    return area ? [area] : [];
-  });
+  const areas = (await Promise.all(ids.map((id) => getArea(id)))).filter((area): area is AreaRecord => Boolean(area));
   return (
     <PageShell
       active="Compare"

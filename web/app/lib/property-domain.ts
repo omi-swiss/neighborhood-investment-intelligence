@@ -233,7 +233,7 @@ function percent(value: number | null): string {
   return value === null ? "Missing" : new Intl.NumberFormat("en-US", { style: "percent", maximumFractionDigits: 1 }).format(value);
 }
 
-export function deriveProperty(row: PropertyRow): PropertyDerived {
+export async function deriveProperty(row: PropertyRow): Promise<PropertyDerived> {
   const rent = row.marketMonthlyRent ?? row.currentMonthlyRent;
   const pricePerSquareFoot =
     row.buildingSquareFeet && row.buildingSquareFeet > 0
@@ -258,7 +258,7 @@ export function deriveProperty(row: PropertyRow): PropertyDerived {
       : null;
   const capRateProxy =
     netOperatingIncomeProxy !== null ? netOperatingIncomeProxy / row.askingPrice : null;
-  const area = row.tractGeoid ? getArea(row.tractGeoid) : undefined;
+  const area = row.tractGeoid ? await getArea(row.tractGeoid) : undefined;
   const completenessFields = [
     row.latitude,
     row.longitude,

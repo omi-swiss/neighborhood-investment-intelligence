@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import { OpportunityScreener } from "./components/OpportunityScreener";
-import dataset from "./data/areas.generated.json";
 import { filtersFromSearch } from "./lib/screener-query";
-import type { AreaDataset } from "./lib/types";
+import { loadDataset } from "./lib/areas";
 
 export const metadata: Metadata = {
   title: "Discover Markets",
@@ -13,7 +12,7 @@ export const metadata: Metadata = {
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 
 export default async function Home({ searchParams }: Props) {
-  const typedDataset = dataset as AreaDataset;
+  const typedDataset = await loadDataset();
   const values = await searchParams;
   const query = new URLSearchParams();
   Object.entries(values).forEach(([key, value]) => {

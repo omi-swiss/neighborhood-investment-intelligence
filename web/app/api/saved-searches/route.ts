@@ -72,8 +72,8 @@ export async function POST(request: Request) {
   await ensureSchema();
   const db = await getDb();
   const rows = await db.select().from(properties).where(eq(properties.userEmail, email));
-  const propertyIds = rows
-    .map((row) => ({ ...row, derived: deriveProperty(row) }))
+  const propertyIds = (await Promise.all(rows
+    .map(async (row) => ({ ...row, derived: await deriveProperty(row) }))))
     .filter((property) => matchesPropertySearch(property, query))
     .map((property) => property.id);
   const now = new Date().toISOString();

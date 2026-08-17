@@ -10,7 +10,7 @@ export async function GET(request: Request) {
     50,
     Math.max(10, Math.floor(Number(search.get("pageSize")) || 20)),
   );
-  const areas = filterAreas(filters);
+  const areas = await filterAreas(filters);
   const pageStart = (page - 1) * pageSize;
   const mapLimit = 1_200;
   const marketSummaries: MarketMapSummary[] = filters.city === "all"

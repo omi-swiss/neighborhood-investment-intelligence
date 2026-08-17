@@ -15,12 +15,11 @@ export async function GET(request: Request) {
     .from(savedAreas)
     .where(eq(savedAreas.userEmail, email))
     .orderBy(desc(savedAreas.createdAt));
-  return Response.json({
-    items: rows.flatMap((row) => {
-      const area = getArea(row.areaId);
-      return area ? [{ ...row, area }] : [];
-    }),
-  });
+  const items = (await Promise.all(rows.map(async (row) => {
+    const area = await getArea(row.areaId);
+    return area ? { ...row, area } : null;
+  }))).filter((item): item is NonNullable<typeof item> => item !== null);
+  return Response.json({ items });
 }
 
 export async function POST(request: Request) {
@@ -28,7 +27,7 @@ export async function POST(request: Request) {
   if (!email) return Response.json({ error: "Authentication required" }, { status: 401 });
   const body = (await request.json()) as { areaId?: unknown };
   const areaId = typeof body.areaId === "string" ? body.areaId.trim() : "";
-  if (!areaId || !getArea(areaId)) {
+  if (!areaId || !(await getArea(areaId))) {
     return Response.json({ error: "A supported areaId is required" }, { status: 400 });
   }
   await ensureSchema();

@@ -1,7 +1,8 @@
 import { remainingGaps } from "../../lib/remaining-gaps";
-import { dataset } from "../../lib/areas";
+import { loadDataset } from "../../lib/areas";
 
 export async function GET(request: Request) {
+  const dataset = await loadDataset();
   const search = new URL(request.url).searchParams;
   const resource = search.get("resource") ?? "markets";
   const requestedLimit = Number(search.get("limit") ?? "100");
