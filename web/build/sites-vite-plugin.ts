@@ -44,7 +44,7 @@ export function sites() {
       // Keep the large, versioned market artifacts outside the Worker bundle.
       // They are served as static assets and fetched only by routes that need
       // tract-level evidence or display geometry.
-      const marketDataDirectory = resolve(root, "dist", "data");
+      const marketDataDirectory = resolve(root, "dist", "client", "data");
       await mkdir(marketDataDirectory, { recursive: true });
       await Promise.all([
         cp(
