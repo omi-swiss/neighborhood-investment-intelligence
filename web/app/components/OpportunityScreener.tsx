@@ -1069,7 +1069,7 @@ function AreaTable({
                   {area.score?.toFixed(0) ?? "—"}
                 </button>
               </td>
-              <td><strong>{insight.marketQualityScore?.toFixed(0) ?? "—"}</strong><span className="metric-sub">Rental demand {insight.rentalDemandScore?.toFixed(0) ?? "—"}</span></td>
+              <td><strong>{insight.marketQualityScore?.toFixed(0) ?? "—"}</strong><span className="metric-sub">Rental market {insight.rentalDemandScore?.toFixed(0) ?? "—"}</span></td>
               <td>{formatCurrency(area.metrics.medianHomeValue)}<span className="metric-sub">Rent {formatCurrency(area.metrics.medianGrossRent)}/mo · Value score {insight.valuationScore?.toFixed(0) ?? "—"}</span></td>
               <td>{formatPercent(area.metrics.grossYieldProxy)}<span className="metric-sub">Vacancy {formatPercent(area.metrics.vacancyRate)}</span></td>
               <td>{formatPercent(area.metrics.incomeGrowth, true)}<span className="metric-sub">Population {formatPercent(area.metrics.populationGrowth, true)}</span></td>

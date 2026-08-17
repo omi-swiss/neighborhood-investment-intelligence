@@ -49,14 +49,14 @@ export const scoreDefinitions: Array<{
     label: "Demographic momentum",
     weight: 0.15,
     direction: "Higher growth is favorable",
-    evidence: "Population compound annual growth, ACS 2019–2023",
+    evidence: "Population compound annual growth, ACS 2020–2024",
   },
   {
     key: "incomeMomentum",
     label: "Income momentum",
     weight: 0.2,
     direction: "Higher real growth is favorable",
-    evidence: "Inflation-adjusted household-income growth, ACS 2019–2023",
+    evidence: "Inflation-adjusted household-income growth, ACS 2020–2024",
   },
   {
     key: "rentalStrength",

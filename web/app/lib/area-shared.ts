@@ -12,8 +12,8 @@ export const scoreDefinitions: Array<{
   direction: string;
   evidence: string;
 }> = [
-  { key: "demographicMomentum", label: "Demographic momentum", weight: 0.15, direction: "Higher growth is favorable", evidence: "Population compound annual growth, ACS 2019–2023" },
-  { key: "incomeMomentum", label: "Income momentum", weight: 0.2, direction: "Higher real growth is favorable", evidence: "Inflation-adjusted household-income growth, ACS 2019–2023" },
+  { key: "demographicMomentum", label: "Demographic momentum", weight: 0.15, direction: "Higher growth is favorable", evidence: "Population compound annual growth, ACS 2020–2024" },
+  { key: "incomeMomentum", label: "Income momentum", weight: 0.2, direction: "Higher real growth is favorable", evidence: "Inflation-adjusted household-income growth, ACS 2020–2024" },
   { key: "rentalStrength", label: "Rental-market strength", weight: 0.25, direction: "Yield/renter share higher; vacancy lower", evidence: "Gross-yield proxy, renter share, and rental vacancy" },
   { key: "housingDemand", label: "Housing demand", weight: 0.15, direction: "Occupancy higher and vacancy lower", evidence: "Occupied housing units and rental vacancy" },
   { key: "riskResilience", label: "Economic resilience", weight: 0.15, direction: "Poverty and unemployment lower", evidence: "Poverty and unemployment rates" },

@@ -91,10 +91,10 @@ export default async function AreaDetailPage({ params }: Props) {
             </div>
             <div className="decision-score-grid">
               <MetricTile label="Opportunity score" value={area.score?.toFixed(0) ?? "Not available"} note="Strategy-weighted area rank" />
-              <MetricTile label="Market quality" value={insight.marketQualityScore?.toFixed(0) ?? "Not available"} note="Area fundamentals only" />
-              <MetricTile label="Rental demand" value={insight.rentalDemandScore?.toFixed(0) ?? "Not available"} note="Rental strength and housing demand" />
+              <MetricTile label="Area fundamentals" value={insight.marketQualityScore?.toFixed(0) ?? "Not available"} note="Observed growth, rental-market, demand, and resilience factors" />
+              <MetricTile label="Rental-market conditions" value={insight.rentalDemandScore?.toFixed(0) ?? "Not available"} note="Yield, renter share, vacancy, and occupancy signals" />
               <MetricTile label="Risk" value={insight.riskLabel} note="Available economic resilience evidence" />
-              <MetricTile label="Data confidence" value={insight.dataConfidence} note={`${formatPercent(area.metrics.metricCoverage)} metric completeness`} />
+              <MetricTile label="Data confidence" value={insight.dataConfidence} note={`${formatPercent(area.metrics.metricCoverage)} completeness plus ACS estimate reliability`} />
             </div>
             <div className="investment-thesis-grid">
               <div><span>Investment thesis</span><strong>{insight.thesis}</strong></div>

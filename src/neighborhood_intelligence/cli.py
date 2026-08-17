@@ -229,7 +229,7 @@ def refresh_opportunity_cohort(
     fetch_workers: int = typer.Option(3, "--fetch-workers", min=1, max=8),
     resume: bool = typer.Option(False, "--resume"),
 ) -> None:
-    """Refresh the configured nine-market ACS cohort without publishing a partial release."""
+    """Refresh the configured ACS cohort without publishing a partial release."""
     settings = load_settings()
     if not settings.opportunity_cohort_states:
         raise typer.BadParameter("Configure opportunity_cohort_states before refreshing the cohort")
@@ -252,7 +252,7 @@ def release_opportunity_cohort(
     fetch_workers: int = typer.Option(3, "--fetch-workers", min=1, max=8),
     resume: bool = typer.Option(False, "--resume"),
 ) -> None:
-    """Build a manifest-backed local nine-market release; it never deploys."""
+    """Build a manifest-backed local opportunity release; it never deploys."""
     settings, conn = database()
     states = settings.opportunity_cohort_states
     years = [year for year in settings.acs_years if year >= 2020]
@@ -272,7 +272,10 @@ def release_opportunity_cohort(
         ingest_display_geography(state=states)
         build_profile_command()
         export_profile_command()
-        export_display_geography_web_command()
+        export_display_geography_web_command(
+            destination=Path("web/app/data/display-geography.generated.json"),
+            all_loaded_tracts=False,
+        )
         subprocess.run([sys.executable, "scripts/export_web_phase1.py"], check=True)
 
         _, conn = database()

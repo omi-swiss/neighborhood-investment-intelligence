@@ -17,6 +17,17 @@ export type AreaDecisionInsight = {
   missingFactors: string[];
 };
 
+function dataConfidence(
+  coverage: number | null,
+  reliabilities: string[],
+): "High" | "Medium" | "Low" | "Missing" {
+  if (coverage === null) return "Missing";
+  const normalized = reliabilities.map((value) => value.toLowerCase());
+  if (coverage < 0.72 || normalized.includes("unreliable")) return "Low";
+  if (coverage < 0.9 || normalized.includes("caution")) return "Medium";
+  return "High";
+}
+
 function roundedAverage(values: Array<number | null | undefined>): number | null {
   const available = values.filter((value): value is number => value !== null && value !== undefined && Number.isFinite(value));
   if (!available.length) return null;
@@ -63,13 +74,16 @@ export function investorAreaName(area: AreaRecord, center?: MarketCenter): strin
 }
 
 export function areaDecisionInsight(area: AreaRecord): AreaDecisionInsight {
-  const ranked = scoreDefinitions
+  const investmentDefinitions = scoreDefinitions.filter(
+    (definition) => definition.key !== "dataReliability",
+  );
+  const ranked = investmentDefinitions
     .flatMap((definition) => {
       const score = area.scores[definition.key];
       return score === null ? [] : [{ key: definition.key, label: definition.label, score }];
     })
     .sort((left, right) => right.score - left.score);
-  const missingFactors = scoreDefinitions
+  const missingFactors = investmentDefinitions
     .filter((definition) => area.scores[definition.key] === null)
     .map((definition) => definition.label);
   const strongest = ranked[0];
@@ -77,7 +91,10 @@ export function areaDecisionInsight(area: AreaRecord): AreaDecisionInsight {
   const resilience = area.scores.riskResilience;
   const coverage = area.metrics.metricCoverage;
   const riskLabel = resilience === null ? "Missing" : resilience >= 70 ? "Low" : resilience >= 45 ? "Moderate" : "Elevated";
-  const dataConfidence = coverage === null ? "Missing" : coverage >= 0.9 ? "High" : coverage >= 0.72 ? "Medium" : "Low";
+  const confidence = dataConfidence(coverage, [
+    area.quality.populationReliability,
+    area.quality.incomeReliability,
+  ]);
   const positive = strongest
     ? `${strongest.label} is the strongest observed factor (${Math.round(strongest.score)}/100).`
     : "No scored factor is available.";
@@ -101,7 +118,7 @@ export function areaDecisionInsight(area: AreaRecord): AreaDecisionInsight {
     rentalDemandScore: roundedAverage([area.scores.rentalStrength, area.scores.housingDemand]),
     valuationScore: area.scores.rentalStrength,
     riskLabel,
-    dataConfidence,
+    dataConfidence: confidence,
     primaryPositive: positive,
     primaryRisk: risk,
     thesis: `${positive} ${trendText}, and ${yieldText}.`,

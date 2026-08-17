@@ -102,8 +102,21 @@ SUPPORTED_MARKETS = [
         "metro_geoid": "16980",
         "metro": "Chicago-Naperville-Elgin, IL-IN-WI",
     },
+    {"id": "place:4805000", "city_geoid": "4805000", "city": "Austin", "state": "Texas", "state_abbr": "TX", "metro_geoid": "12420", "metro": "Austin-Round Rock-Georgetown, TX"},
+    {"id": "place:0455000", "city_geoid": "0455000", "city": "Phoenix", "state": "Arizona", "state_abbr": "AZ", "metro_geoid": "38060", "metro": "Phoenix-Mesa-Chandler, AZ"},
+    {"id": "place:4819000", "city_geoid": "4819000", "city": "Dallas", "state": "Texas", "state_abbr": "TX", "metro_geoid": "19100", "metro": "Dallas-Fort Worth-Arlington, TX"},
+    {"id": "place:4865000", "city_geoid": "4865000", "city": "San Antonio", "state": "Texas", "state_abbr": "TX", "metro_geoid": "41700", "metro": "San Antonio-New Braunfels, TX"},
+    {"id": "place:1245000", "city_geoid": "1245000", "city": "Miami", "state": "Florida", "state_abbr": "FL", "metro_geoid": "33100", "metro": "Miami-Fort Lauderdale-West Palm Beach, FL"},
+    {"id": "place:3915000", "city_geoid": "3915000", "city": "Cincinnati", "state": "Ohio", "state_abbr": "OH", "metro_geoid": "17140", "metro": "Cincinnati, OH-KY-IN"},
+    {"id": "place:3918000", "city_geoid": "3918000", "city": "Columbus", "state": "Ohio", "state_abbr": "OH", "metro_geoid": "18140", "metro": "Columbus, OH"},
+    {"id": "place:5363000", "city_geoid": "5363000", "city": "Seattle", "state": "Washington", "state_abbr": "WA", "metro_geoid": "42660", "metro": "Seattle-Tacoma-Bellevue, WA"},
+    {"id": "place:4752006", "city_geoid": "4752006", "city": "Nashville-Davidson", "state": "Tennessee", "state_abbr": "TN", "metro_geoid": "34980", "metro": "Nashville-Davidson--Murfreesboro--Franklin, TN"},
+    {"id": "place:0820000", "city_geoid": "0820000", "city": "Denver", "state": "Colorado", "state_abbr": "CO", "metro_geoid": "19740", "metro": "Denver-Aurora-Centennial, CO"},
+    {"id": "place:3651000", "city_geoid": "3651000", "city": "New York City", "state": "New York", "state_abbr": "NY", "metro_geoid": "35620", "metro": "New York-Newark-Jersey City, NY-NJ-PA"},
 ]
 STATE_CONTEXT = {
+    "04": ("Arizona", "AZ"),
+    "08": ("Colorado", "CO"),
     "10": ("Delaware", "DE"),
     "11": ("District of Columbia", "DC"),
     "24": ("Maryland", "MD"),
@@ -115,8 +128,13 @@ STATE_CONTEXT = {
     "17": ("Illinois", "IL"),
     "25": ("Massachusetts", "MA"),
     "26": ("Michigan", "MI"),
+    "36": ("New York", "NY"),
     "37": ("North Carolina", "NC"),
+    "39": ("Ohio", "OH"),
     "45": ("South Carolina", "SC"),
+    "47": ("Tennessee", "TN"),
+    "48": ("Texas", "TX"),
+    "53": ("Washington", "WA"),
 }
 
 
@@ -491,8 +509,8 @@ def export(database: Path, output: Path) -> dict[str, Any]:
     payload = {
         "generatedAt": pd.Timestamp.utcnow().isoformat(),
         "coverage": {
-            "label": "Nine-city opportunity-screening cohort",
-            "city": "Nine supported city-proper markets",
+            "label": "Twenty-city opportunity-screening cohort",
+            "city": "Twenty supported city-proper markets",
             "metro": "Metro definitions shown separately and marked planned",
             "geographicLevel": "census tract",
             "scoreReferenceYear": SCORE_YEAR,
@@ -501,13 +519,13 @@ def export(database: Path, output: Path) -> dict[str, Any]:
             "areaCount": len(areas),
         },
         "methodology": {
-            "scoreVersion": "nine-city-2.0",
+            "scoreVersion": "twenty-city-2.0",
             "source": "U.S. Census Bureau ACS 5-year",
             "sourceUrl": "https://www.census.gov/programs-surveys/acs",
             "availableAt": "2026-01-29",
             "observationType": "observed and derived",
             "limitations": [
-                "Scores rank comparable tracts across the nine supported city-proper markets.",
+                "Scores rank comparable tracts across the twenty supported city-proper markets.",
                 "Growth uses overlapping ACS 2020 and 2024 five-year windows on 2020 Census tract geography.",
                 "Gross yield is a screening proxy based on area median rent and value, not property NOI.",
                 "Official neighborhood labels are partial. A tract label is shown when no verified neighborhood source is available.",
@@ -516,8 +534,8 @@ def export(database: Path, output: Path) -> dict[str, Any]:
         },
         "markets": markets,
         "benchmarks": {
-            "city": _benchmark("Supported nine-city cohort", rows),
-            "metro": _benchmark("Supported nine-metro context cohort", metro_rows),
+            "city": _benchmark("Supported twenty-city cohort", rows),
+            "metro": _benchmark("Supported twenty-metro context cohort", metro_rows),
             "byCity": city_benchmarks,
             "byMetro": metro_benchmarks,
         },
