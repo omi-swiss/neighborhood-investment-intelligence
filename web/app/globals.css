@@ -820,7 +820,8 @@ a {
 }
 
 .map-controls button {
-  min-height: 28px;
+  min-height: 44px;
+  min-width: 44px;
   border: 0;
   border-radius: 7px;
   color: var(--ink-muted);
@@ -829,6 +830,11 @@ a {
   font-size: 10.5px;
   font-weight: 800;
   cursor: pointer;
+}
+
+.map-controls button:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
 }
 
 .map-controls button.active {
@@ -1931,8 +1937,8 @@ a {
   border: 1px solid var(--line);
   border-radius: 50%;
   background: white;
-  width: 34px;
-  height: 34px;
+  width: 44px;
+  height: 44px;
   cursor: pointer;
 }
 

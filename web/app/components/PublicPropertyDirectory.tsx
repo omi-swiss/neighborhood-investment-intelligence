@@ -362,7 +362,7 @@ export function PublicPropertyDirectory({
                         <span>{item.yearBuilt ? `Built ${item.yearBuilt}` : item.tractGeoid ? `Tract ${item.tractGeoid.slice(-6)}` : "Year built unavailable"}</span>
                       </div>
                       <div className="property-card-actions">
-                        <a className="button" href={item.sourceUrl} target="_blank" rel="noreferrer">Official record</a>
+                        <a className="button" href={item.sourceUrl} target="_blank" rel="noreferrer">Official property details</a>
                         <button className={isSaved ? "button primary" : "button"} onClick={() => toggleProspect(item)}>
                           {mode === "prospects" ? "Remove from list" : isSaved ? "Saved to prospecting" : "Add to prospecting"}
                         </button>

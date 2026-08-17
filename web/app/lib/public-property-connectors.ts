@@ -55,6 +55,24 @@ function safeQuery(value: string) {
     .replace(/\s+/g, " ");
 }
 
+function officialPropertyDetailUrl(market: PropertyMarketDirectoryEntry, parcelId: string) {
+  const id = parcelId.trim();
+  if (!id || id === "Parcel ID unavailable") return market.officialSourceUrl;
+  const encodedId = encodeURIComponent(id);
+  switch (market.city) {
+    case "Detroit":
+      return `https://cityofdetroit.github.io/parcel-viewer/${encodedId}`;
+    case "Boston":
+      return `https://www.cityofboston.gov/assessing/search/?pid=${encodedId}`;
+    case "Tampa":
+      return `https://gis.hcpafl.org/propertysearch/#/parcel/basic/${encodedId}`;
+    case "Chicago":
+      return `https://www.cookcountyassessoril.gov/pin/${encodedId}`;
+    default:
+      return market.officialSourceUrl;
+  }
+}
+
 async function fetchJson<T>(url: string, params: URLSearchParams) {
   const response = await fetch(`${url}?${params}`, {
     headers: { Accept: "application/json" },
@@ -120,7 +138,7 @@ function parcelRecord(
     neighborhood: values.neighborhood ?? null,
     tractGeoid: values.tractGeoid ?? null,
     postalCode: values.postalCode ?? null,
-    sourceUrl: values.sourceUrl ?? market.officialSourceUrl,
+    sourceUrl: values.sourceUrl ?? officialPropertyDetailUrl(market, values.parcelId),
     sourceName: market.officialSourceName,
     yearBuilt: values.yearBuilt ?? null,
     latitude: values.latitude ?? null,
@@ -225,7 +243,7 @@ async function lookupTampa(market: PropertyMarketDirectoryEntry, query: string, 
         saleDate: arcGisDate(a.S_DATE),
         salePrice: cleanNumber(a.AMT),
         neighborhood: cleanText(a.NBHC) ? `Appraiser area ${cleanText(a.NBHC)}` : null,
-        sourceUrl: `https://gis.hcpafl.org/propertysearch/#/parcel/basic/${encodeURIComponent(parcelId)}`,
+        sourceUrl: officialPropertyDetailUrl(market, parcelId),
       });
     },
   });

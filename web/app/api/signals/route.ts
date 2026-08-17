@@ -3,8 +3,19 @@ import { phase8 } from "../../lib/phase8";
 export async function GET(request: Request) {
   const search = new URL(request.url).searchParams;
   const layer = search.get("layer") ?? "summary";
+  const marketId = search.get("marketId") ?? "";
   const requestedLimit = Number(search.get("limit") ?? "100");
   const limit = Math.min(5000, Math.max(1, Number.isFinite(requestedLimit) ? requestedLimit : 100));
+  const dcOnlyLayer = ["development", "environment", "flood"].includes(layer);
+  if (dcOnlyLayer && marketId !== "place:1150000") {
+    return Response.json({
+      generatedAt: phase8.generatedAt,
+      layer,
+      total: 0,
+      items: [],
+      coverage: "This evidence layer currently supports Washington, DC only.",
+    });
+  }
 
   if (layer === "development") {
     return Response.json({

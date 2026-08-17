@@ -6,6 +6,7 @@ import type { PropertyWithDerived } from "../../lib/property-domain";
 import { PropertyMap } from "../../components/PropertyMap";
 import { ComparableWorkspace } from "../../components/ComparableWorkspace";
 import { WatchEntityButton } from "../../components/WatchEntityButton";
+import { appendContext } from "../../lib/investor-context";
 
 type ListingHistory = {
   id: number;
@@ -26,7 +27,7 @@ function percent(value: number | null) {
     : new Intl.NumberFormat("en-US", { style: "percent", maximumFractionDigits: 1 }).format(value);
 }
 
-export function PropertyProfile({ propertyId }: { propertyId: string }) {
+export function PropertyProfile({ propertyId, returnTo }: { propertyId: string; returnTo?: string }) {
   const [property, setProperty] = useState<PropertyWithDerived | null>(null);
   const [history, setHistory] = useState<ListingHistory[]>([]);
   const [status, setStatus] = useState("Loading property evidence...");
@@ -70,10 +71,10 @@ export function PropertyProfile({ propertyId }: { propertyId: string }) {
           <p className="detail-context">{property.city}, {property.county ? `${property.county}, ` : ""}{property.state} {property.postalCode}</p>
         </div>
         <div className="actions">
-          <Link className="button primary" href={`/underwriting?propertyId=${property.id}`}>Open financial model</Link>
+          <Link className="button primary" href={appendContext("/underwriting", { version: 1, propertyId: property.id, tractGeoid: property.tractGeoid ?? undefined, sourceRecordId: property.sourceRecordId, returnTo: `/properties/${property.id}` })}>Open financial model</Link>
           <button className="button primary" onClick={() => void save()}>Save property</button>
           <WatchEntityButton entityType="property" entityKey={String(property.id)} />
-          <Link className="button" href="/properties">Back to marketplace</Link>
+          <Link className="button" href={returnTo ?? "/properties"}>Back to marketplace</Link>
         </div>
       </div>
       {saveMessage ? <p className="status-message">{saveMessage}</p> : null}

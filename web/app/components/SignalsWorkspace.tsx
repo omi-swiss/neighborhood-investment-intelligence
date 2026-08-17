@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { formatCurrency, formatInteger, formatPercent } from "../lib/area-shared";
 import type { MarketContext } from "../data/market-context";
+import { marketCounty } from "../lib/market-geography";
 
 export type MarketProfile = {
   marketId: string;
@@ -64,8 +65,10 @@ export function SignalsWorkspace({
   const [search, setSearch] = useState("");
   const [saved, setSaved] = useState<string[]>([]);
   const [eventPage, setEventPage] = useState(1);
+  const [whyMetric, setWhyMetric] = useState<"migration" | "agi" | null>(null);
   const profile = profiles.find((item) => item.marketId === marketId) ?? profiles[0];
   const context = contexts.find((item) => item.marketId === marketId);
+  const county = marketCounty(marketId);
   const filteredEvents = useMemo(() => events.filter((event) =>
     event.marketId === marketId &&
     (category === "all" || event.category === category) &&
@@ -132,6 +135,7 @@ export function SignalsWorkspace({
               : "IRS migration data unavailable"}
           />
         </div>
+        {context ? <div className="method-note"><strong>{context.migration.geographyType === "county proxy" ? `PROXY · ${context.migration.geographyLabel}` : `OBSERVED COUNTY-EQUIVALENT · ${context.migration.geographyLabel}`}</strong> · IRS {context.migration.dataYear} · published March 19, 2026. <button className="text-button" onClick={() => setWhyMetric("migration")}>Why these migration values?</button></div> : null}
         {context ? (
           <div className="city-context-grid">
             <article className="context-card">
@@ -157,6 +161,7 @@ export function SignalsWorkspace({
               <small>
                 {formatCompactCurrency(context.migration.inboundAgi)} moved in and {formatCompactCurrency(context.migration.outboundAgi)} moved out during {context.migration.dataYear}. {context.migration.geographyLabel} is a {context.migration.geographyType}.
               </small>
+              <button className="text-button" onClick={() => setWhyMetric("agi")}>Why this value?</button>
             </article>
           </div>
         ) : null}
@@ -167,6 +172,26 @@ export function SignalsWorkspace({
           from 2022 to 2023 and was published March 19, 2026. Growth uses overlapping ACS 2019–2023 windows.
         </p>
       </section>
+
+      {context && whyMetric ? (
+        <>
+          <button className="drawer-backdrop" aria-label="Close metric details" onClick={() => setWhyMetric(null)} />
+          <section className="drawer" aria-labelledby="metric-lineage-title" aria-modal="true" role="dialog">
+            <button className="drawer-close" aria-label="Close metric details" onClick={() => setWhyMetric(null)}>×</button>
+            <p className="eyebrow">Why this value?</p>
+            <h2 id="metric-lineage-title">{whyMetric === "migration" ? "Net migration" : "Net AGI"}</h2>
+            <p className="drawer-lead">{context.migration.geographyType === "county proxy" ? "Proxy for the selected city market" : "Selected market is a county-equivalent"}: {context.migration.geographyLabel}{county ? ` (GEOID ${county.countyGeoid})` : ""}.</p>
+            <div className="source-list">
+              <div className="source-item"><strong>Status</strong><span>{context.migration.geographyType === "county proxy" ? "PROXY" : "OBSERVED county-equivalent flow"}</span></div>
+              <div className="source-item"><strong>Observation period</strong><span>IRS address changes from returns processed in 2022–2023; not a city annual estimate.</span></div>
+              <div className="source-item"><strong>Publication date</strong><span>March 19, 2026</span></div>
+              <div className="source-item"><strong>Calculation</strong><span>{whyMetric === "migration" ? `${formatInteger(context.migration.inboundPeople)} inbound people − ${formatInteger(context.migration.outboundPeople)} outbound people = ${formatSignedInteger(context.migration.netPeople)}.` : `(${formatCompactCurrency(context.migration.inboundAgi)} inbound AGI − ${formatCompactCurrency(context.migration.outboundAgi)} outbound AGI) = ${formatSignedCurrency(context.migration.netAgi)}. IRS source AGI is reported in thousands and displayed here in dollars.`}</span></div>
+              <div className="source-item"><strong>Limitation</strong><span>IRS migration covers tax-return filers and can be suppressed or rounded. Raw source rows and retrieval checksum are not yet retained in this web artifact.</span></div>
+            </div>
+            <a className="button primary" href={context.migration.sourceUrl} target="_blank" rel="noreferrer">Open IRS source</a>
+          </section>
+        </>
+      ) : null}
 
       <section className="detail-card wide-card">
         <div className="signals-heading">

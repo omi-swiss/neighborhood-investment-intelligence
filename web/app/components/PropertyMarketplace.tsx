@@ -18,6 +18,7 @@ type ResponsePayload = {
 export type Filters = {
   search: string;
   city: string;
+  tractGeoid: string;
   propertyType: string;
   maximumPrice: number;
   minimumGrossYield: number;
@@ -27,6 +28,7 @@ export type Filters = {
 const defaultFilters: Filters = {
   search: "",
   city: "",
+  tractGeoid: "",
   propertyType: "",
   maximumPrice: 10_000_000,
   minimumGrossYield: 0,
@@ -49,6 +51,7 @@ function queryFor(filters: Filters, page: number) {
   return new URLSearchParams({
     search: filters.search,
     city: filters.city,
+    tractGeoid: filters.tractGeoid,
     propertyType: filters.propertyType,
     maximumPrice: String(filters.maximumPrice),
     minimumGrossYield: String(filters.minimumGrossYield),
@@ -60,9 +63,11 @@ function queryFor(filters: Filters, page: number) {
 
 export function PropertyMarketplace({
   initialFilters = defaultFilters,
+  initialIntake,
   markets,
 }: {
   initialFilters?: Filters;
+  initialIntake?: "manual";
   markets: Array<{ city: string; stateAbbr: string }>;
 }) {
   const [draft, setDraft] = useState(initialFilters);
@@ -71,7 +76,8 @@ export function PropertyMarketplace({
   const [payload, setPayload] = useState<ResponsePayload | null>(null);
   const [selected, setSelected] = useState<PropertyWithDerived | null>(null);
   const [view, setView] = useState<"cards" | "map">("cards");
-  const [showImport, setShowImport] = useState(false);
+  const [showImport, setShowImport] = useState(initialIntake === "manual");
+  const [importMode, setImportMode] = useState<"csv" | "manual">(initialIntake === "manual" ? "manual" : "csv");
   const [showSaveSearch, setShowSaveSearch] = useState(false);
   const [searchName, setSearchName] = useState("");
   const [saveMessage, setSaveMessage] = useState("");
@@ -122,11 +128,16 @@ export function PropertyMarketplace({
     }
   }
 
+  function openListingIntake() {
+    setImportMode("manual");
+    setShowImport(true);
+  }
+
   return (
     <>
       <div className="marketplace-context-strip">
         <div>
-          <strong>{filters.city ? `${filters.city} authorized properties` : "All markets"}</strong>
+          <strong>{filters.tractGeoid ? `Tract ${filters.tractGeoid} authorized properties` : filters.city ? `${filters.city} authorized properties` : "All markets"}</strong>
           <span>{payload?.total ?? 0} matching private records</span>
         </div>
         <span>Every record retains its source, permission basis, and observation date.</span>
@@ -139,6 +150,7 @@ export function PropertyMarketplace({
               <label htmlFor="property-search">Address or geography</label>
               <input id="property-search" value={draft.search} placeholder="Address, city, county, ZIP" onChange={(event) => setDraft({ ...draft, search: event.target.value })} />
             </div>
+            {filters.tractGeoid ? <div className="method-note">Filtered to Census tract {filters.tractGeoid}. <button className="text-button" onClick={() => { setDraft({ ...draft, tractGeoid: "" }); setFilters({ ...filters, tractGeoid: "" }); setPage(1); }}>Clear tract</button></div> : null}
             <div className="field">
               <label htmlFor="property-market">Market</label>
               <select id="property-market" value={draft.city} onChange={(event) => setDraft({ ...draft, city: event.target.value })}>
@@ -172,7 +184,8 @@ export function PropertyMarketplace({
             <button className="button" onClick={() => setShowSaveSearch((value) => !value)}>
               {showSaveSearch ? "Cancel save" : "Save search"}
             </button>
-            <button className="button" onClick={() => setShowImport((value) => !value)}>{showImport ? "Close import" : "Import property data"}</button>
+            <button className="button" onClick={openListingIntake}>Analyze a listing you found</button>
+            <button className="button" onClick={() => { setImportMode("csv"); setShowImport((value) => !value); }}>{showImport && importMode === "csv" ? "Close import" : "Import property data"}</button>
             <Link className="button" href="/api/properties/export">Export CSV</Link>
             <div className="segmented">
               <button className={view === "cards" ? "active" : ""} onClick={() => setView("cards")}>Cards</button>
@@ -196,7 +209,7 @@ export function PropertyMarketplace({
             </div>
           ) : null}
           {saveMessage ? <p className="status-message" role="status">{saveMessage}</p> : null}
-          {showImport ? <ImportPanel onImported={() => { setRefresh((value) => value + 1); setShowImport(false); }} /> : null}
+          {showImport ? <ImportPanel key={importMode} defaultMode={importMode} initialFilters={filters} markets={markets} onImported={() => { setRefresh((value) => value + 1); setShowImport(false); }} /> : null}
           {loadError ? <div className="method-note" role="alert">{loadError}</div> : null}
           {!loading && !loadError && !hasProperties ? (
             <div className="property-empty">
@@ -207,7 +220,7 @@ export function PropertyMarketplace({
                 Import an authorized CSV or enter a property manually. The system will not fabricate a listing or silently obtain one from a restricted site.
               </p>
               <div className="actions">
-                <button className="button primary" onClick={() => setShowImport(true)}>Open import workflow</button>
+                <button className="button primary" onClick={openListingIntake}>Analyze a listing you found</button>
                 <Link className="button" href="/api/properties/template">Download CSV template</Link>
               </div>
             </div>
@@ -255,23 +268,36 @@ export function PropertyMarketplace({
   );
 }
 
-function ImportPanel({ onImported }: { onImported: () => void }) {
-  const [mode, setMode] = useState<"csv" | "manual">("csv");
-  const [sourceName, setSourceName] = useState("");
-  const [sourceLicense, setSourceLicense] = useState("");
+function ImportPanel({
+  defaultMode,
+  initialFilters,
+  markets,
+  onImported,
+}: {
+  defaultMode: "csv" | "manual";
+  initialFilters: Filters;
+  markets: Array<{ city: string; stateAbbr: string }>;
+  onImported: () => void;
+}) {
+  const [mode, setMode] = useState<"csv" | "manual">(defaultMode);
+  const [sourceName, setSourceName] = useState(defaultMode === "manual" ? "User-supplied listing" : "");
+  const [sourceLicense, setSourceLicense] = useState(defaultMode === "manual" ? "User-entered facts; verify against the original source." : "");
   const [sourceUrl, setSourceUrl] = useState("");
   const [rows, setRows] = useState<Array<Record<string, string>>>([]);
   const [filename, setFilename] = useState("");
   const [message, setMessage] = useState("");
   const [manual, setManual] = useState({
-    source_record_id: "", address: "", city: "", county: "", state: "", postal_code: "",
+    source_record_id: "", address: "", city: initialFilters.city, county: "", state: markets.find((market) => market.city === initialFilters.city)?.stateAbbr ?? "", postal_code: "",
     property_type: "single-family", asking_price: "", market_monthly_rent: "",
-    latitude: "", longitude: "", tract_geoid: "", observed_at: new Date().toISOString().slice(0, 10),
+    latitude: "", longitude: "", tract_geoid: initialFilters.tractGeoid, observed_at: new Date().toISOString().slice(0, 10),
   });
 
   async function submit() {
     setMessage("");
-    const importRows = mode === "csv" ? rows : [manual];
+    const importRows = mode === "csv" ? rows : [{
+      ...manual,
+      source_record_id: manual.source_record_id || sourceUrl,
+    }];
     const response = await fetch("/api/properties/import", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -296,19 +322,30 @@ function ImportPanel({ onImported }: { onImported: () => void }) {
     onImported();
   }
 
+  const hasManualReference = Boolean(manual.source_record_id || sourceUrl);
+
   return (
     <div className="import-panel">
       <div className="panel-head">
-        <div><p className="eyebrow">Source-controlled ingestion</p><h2>Import properties</h2></div>
+        <div>
+          <p className="eyebrow">Source-controlled ingestion</p>
+          <h2>{mode === "manual" ? "Analyze a listing you found" : "Import properties"}</h2>
+        </div>
         <div className="segmented">
           <button className={mode === "csv" ? "active" : ""} onClick={() => setMode("csv")}>CSV</button>
           <button className={mode === "manual" ? "active" : ""} onClick={() => setMode("manual")}>Manual</button>
         </div>
       </div>
       <div className="import-grid">
-        <div className="field"><label>Source name</label><input value={sourceName} placeholder="Broker feed, public record, or owner research" onChange={(event) => setSourceName(event.target.value)} /></div>
-        <div className="field"><label>License / permission basis</label><input value={sourceLicense} placeholder="Internal authorized use, public domain, contract..." onChange={(event) => setSourceLicense(event.target.value)} /></div>
-        <div className="field"><label>Source URL (optional)</label><input type="url" value={sourceUrl} onChange={(event) => setSourceUrl(event.target.value)} /></div>
+        {mode === "manual" ? (
+          <div className="field"><label>Original listing URL (recommended)</label><input type="url" value={sourceUrl} placeholder="Paste the listing page you found" onChange={(event) => setSourceUrl(event.target.value)} /></div>
+        ) : (
+          <>
+            <div className="field"><label>Source name</label><input value={sourceName} placeholder="Broker feed, public record, or owner research" onChange={(event) => setSourceName(event.target.value)} /></div>
+            <div className="field"><label>License / permission basis</label><input value={sourceLicense} placeholder="Internal authorized use, public domain, contract..." onChange={(event) => setSourceLicense(event.target.value)} /></div>
+            <div className="field"><label>Source URL (optional)</label><input type="url" value={sourceUrl} onChange={(event) => setSourceUrl(event.target.value)} /></div>
+          </>
+        )}
       </div>
       {mode === "csv" ? (
         <div className="import-drop">
@@ -343,8 +380,12 @@ function ImportPanel({ onImported }: { onImported: () => void }) {
           )}
         </div>
       )}
-      <div className="method-note">By importing, you attest that this workspace is authorized to use the records under the stated permission basis. Raw source files are not redistributed.</div>
-      <button className="button primary" disabled={!sourceName || !sourceLicense || (mode === "csv" && !rows.length)} onClick={() => void submit()}>Validate and import</button>
+      <div className="method-note">
+        {mode === "manual"
+          ? "Enter an address, city, state, asking price, and either the original URL or your own listing reference. The original link is retained as evidence; NII does not scrape or infer listing facts."
+          : "By importing, you attest that this workspace is authorized to use the records under the stated permission basis. Raw source files are not redistributed."}
+      </div>
+      <button className="button primary" disabled={!sourceName || !sourceLicense || (mode === "csv" && !rows.length) || (mode === "manual" && !hasManualReference)} onClick={() => void submit()}>Validate and import</button>
       {message ? <p className="status-message" role="status">{message}</p> : null}
     </div>
   );

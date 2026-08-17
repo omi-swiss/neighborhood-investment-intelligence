@@ -1,4 +1,5 @@
 import datasetJson from "../data/areas.generated.json";
+import displayGeometryJson from "../data/display-geography.generated.json";
 import type {
   AreaDataset,
   AreaRecord,
@@ -10,8 +11,30 @@ import type {
   StrategyDefinition,
   StrategyWeights,
 } from "./types";
+import { marketCounty } from "./market-geography";
 
-export const dataset = datasetJson as AreaDataset;
+const rawDataset = datasetJson as AreaDataset;
+const displayGeometry = displayGeometryJson as {
+  displayGeographyVintage: string;
+  areas: Record<string, AreaRecord["geometry"]>;
+};
+export const dataset: AreaDataset = {
+  ...rawDataset,
+  areas: rawDataset.areas.map((area) => {
+    const county = marketCounty(area.marketId);
+    const currentGeometry = displayGeometry.areas[area.id];
+    return {
+      ...area,
+      geometry: currentGeometry ?? area.geometry,
+      geometryVintage: currentGeometry
+        ? displayGeometry.displayGeographyVintage
+        : rawDataset.coverage.geographyVintage,
+      tractGeoid: area.tractGeoid ?? area.id,
+      countyGeoid: area.countyGeoid ?? county?.countyGeoid,
+      countyType: area.countyType ?? county?.countyType,
+    };
+  }),
+};
 export const supportedMarkets = dataset.markets;
 
 export const scoreDefinitions: Array<{

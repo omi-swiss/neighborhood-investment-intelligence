@@ -4,6 +4,7 @@ import { PageShell } from "../components/PageShell";
 import { PropertyMarketplace, type Filters } from "../components/PropertyMarketplace";
 import { PublicPropertyDirectory } from "../components/PublicPropertyDirectory";
 import { propertyMarketDirectory } from "../data/property-markets";
+import { appendContext, contextFromSearch } from "../lib/investor-context";
 
 export const metadata: Metadata = {
   title: "Analyze Property",
@@ -25,19 +26,26 @@ function nonnegative(value: string | string[] | undefined, fallback: number) {
 
 export default async function PropertiesPage({ searchParams }: Props) {
   const query = await searchParams;
+  const context = contextFromSearch(new URLSearchParams(
+    Object.entries(query).flatMap(([key, value]) => typeof value === "string" ? [[key, value]] : []),
+  ));
   const requestedMarket = text(query.market);
-  const initialMarket = propertyMarketDirectory.some((item) => item.city === requestedMarket)
-    ? requestedMarket
+  const contextMarket = propertyMarketDirectory.find((item) => item.id === context.marketId)?.city ?? "";
+  const initialMarket = propertyMarketDirectory.some((item) => item.city === (contextMarket || requestedMarket))
+    ? (contextMarket || requestedMarket)
     : "";
   const initialMarketId = propertyMarketDirectory.find((item) => item.city === initialMarket)?.id ?? "all";
   const initialFilters: Filters = {
     search: text(query.search),
     city: initialMarket,
+    tractGeoid: context.tractGeoid ?? "",
     propertyType: text(query.propertyType),
     maximumPrice: nonnegative(query.maximumPrice, 10_000_000),
     minimumGrossYield: nonnegative(query.minimumGrossYield, 0),
     minimumCompleteness: nonnegative(query.minimumCompleteness, 0),
   };
+  const intake = text(query.intake) === "manual" ? "manual" : undefined;
+  const manualIntakeUrl = appendContext("/properties?intake=manual", context) + "#authorized-workspace";
 
   return (
     <PageShell
@@ -45,7 +53,12 @@ export default async function PropertiesPage({ searchParams }: Props) {
       eyebrow="Investor workflow · Step 2"
       title="Analyze Property"
       description="Find, enter, or import a property, then move into auditable underwriting without confusing public records, prospects, and active listings."
-      actions={<Link className="button" href="/api/properties/template">Import template</Link>}
+      actions={
+        <div className="actions">
+          <Link className="button primary" href={manualIntakeUrl}>Analyze a listing you found</Link>
+          <Link className="button" href="/api/properties/template">Import template</Link>
+        </div>
+      }
       dataVintages={[
         {
           label: "Public property records",
@@ -61,7 +74,7 @@ export default async function PropertiesPage({ searchParams }: Props) {
     >
       <PublicPropertyDirectory markets={propertyMarketDirectory} initialMarketId={initialMarketId} />
 
-      <section className="authorized-marketplace-head">
+      <section className="authorized-marketplace-head" id="authorized-workspace">
         <div>
           <p className="eyebrow">Authorized deal workspace</p>
           <h2>Listings, broker files, and owner-submitted opportunities</h2>
@@ -74,6 +87,7 @@ export default async function PropertiesPage({ searchParams }: Props) {
 
       <PropertyMarketplace
         initialFilters={initialFilters}
+        initialIntake={intake}
         markets={propertyMarketDirectory}
       />
     </PageShell>

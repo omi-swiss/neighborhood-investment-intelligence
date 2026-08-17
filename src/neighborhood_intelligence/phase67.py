@@ -333,6 +333,7 @@ def build_phase67_products(conn: duckdb.DuckDBPyConnection) -> None:
         FROM standardized.private_investment_project
         WHERE verification_status = 'VERIFIED'
           AND project_status NOT IN ('CANCELLED')
+          AND coordinate_precision IN ('SITE', 'PARCEL', 'ADDRESS', 'EXACT')
         """
     )
     conn.execute(
@@ -353,6 +354,7 @@ def build_phase67_products(conn: duckdb.DuckDBPyConnection) -> None:
           AND project_status NOT IN ('CANCELLED')
           AND latitude IS NOT NULL
           AND longitude IS NOT NULL
+          AND coordinate_precision IN ('SITE', 'PARCEL', 'ADDRESS', 'EXACT')
         """
     )
     conn.execute(

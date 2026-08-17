@@ -4,6 +4,7 @@ from datetime import date, datetime, timezone
 from hashlib import sha256
 import json
 from pathlib import Path
+from typing import TYPE_CHECKING
 from uuid import uuid4
 
 import httpx
@@ -11,6 +12,17 @@ from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_ex
 
 from ..catalog import METRICS
 from ..config import Settings
+
+if TYPE_CHECKING:
+    import duckdb
+
+
+ACS_OBSERVATION_COLUMNS = (
+    "tract_geoid", "reporting_year", "geography_vintage", "metric_id", "estimate",
+    "margin_of_error", "numerator", "denominator", "universe", "source_table",
+    "source_variable", "derived_formula", "observation_start", "observation_end",
+    "publication_date", "source_vintage", "ingestion_run_id",
+)
 
 
 class CensusApiError(RuntimeError):
@@ -20,19 +32,37 @@ class CensusApiError(RuntimeError):
 class CensusAcsClient:
     def __init__(self, settings: Settings) -> None:
         self.settings = settings
+        self._client: httpx.Client | None = None
+
+    def __enter__(self) -> "CensusAcsClient":
+        self._client = httpx.Client(timeout=self.settings.request_timeout_seconds)
+        return self
+
+    def __exit__(self, *_args: object) -> None:
+        if self._client is not None:
+            self._client.close()
+            self._client = None
 
     def _url(self, year: int) -> str:
         return f"{self.settings.acs_api_base}/{year}/acs/acs5"
 
     @retry(retry=retry_if_exception_type(httpx.HTTPError), stop=stop_after_attempt(4), wait=wait_exponential(min=1, max=16), reraise=True)
     def get_json(self, url: str, params: dict[str, str] | list[tuple[str, str]]) -> object:
+        if self._client is not None:
+            return self._get_json(self._client, url, params)
         with httpx.Client(timeout=self.settings.request_timeout_seconds) as client:
-            response = client.get(url, params=params)
-            if response.is_redirect and response.headers.get("location", "").endswith("invalid_key.html"):
-                raise CensusApiError("Census API rejected the configured API key.")
-            if response.is_error or response.is_redirect:
-                raise CensusApiError(f"Census API request failed with HTTP {response.status_code}.")
-            return response.json()
+            return self._get_json(client, url, params)
+
+    @staticmethod
+    def _get_json(
+        client: httpx.Client, url: str, params: dict[str, str] | list[tuple[str, str]]
+    ) -> object:
+        response = client.get(url, params=params)
+        if response.is_redirect and response.headers.get("location", "").endswith("invalid_key.html"):
+            raise CensusApiError("Census API rejected the configured API key.")
+        if response.is_error or response.is_redirect:
+            raise CensusApiError(f"Census API request failed with HTTP {response.status_code}.")
+        return response.json()
 
     def verify_variables(self, year: int) -> None:
         metadata = self.get_json(f"{self._url(year)}/groups/B01003.json", {})
@@ -94,6 +124,27 @@ def build_observations(records: list[dict[str, str]], year: int, run_id: str) ->
         for metric in METRICS:
             rows.append((geoid, year, geography_vintage(year), metric.metric_id, parse_number(record.get(metric.variable + "E")), parse_number(record.get(metric.variable + "M")), None, None, metric.universe, metric.table, metric.variable, metric.formula, start, end, today, str(year), run_id))
     return rows
+
+
+def persist_observations(conn: "duckdb.DuckDBPyConnection", rows: list[tuple[object, ...]]) -> None:
+    """Bulk upsert one ACS state-year through an in-memory Arrow staging relation."""
+    if not rows:
+        return
+    import pyarrow as pa
+
+    columns = tuple(zip(*rows, strict=True))
+    table = pa.Table.from_arrays(
+        [pa.array(column) for column in columns], names=ACS_OBSERVATION_COLUMNS
+    )
+    relation = "acs_observation_stage"
+    conn.register(relation, table)
+    try:
+        conn.execute(
+            "INSERT OR REPLACE INTO standardized.acs_observation "
+            f"SELECT {', '.join(ACS_OBSERVATION_COLUMNS)} FROM {relation}"
+        )
+    finally:
+        conn.unregister(relation)
 
 
 def new_run_id() -> str:

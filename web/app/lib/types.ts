@@ -47,6 +47,8 @@ export type StrategyDefinition = {
 
 export type AreaRecord = {
   id: string;
+  /** Canonical current-vintage Census tract GEOID. `id` remains a compatibility alias. */
+  tractGeoid?: string;
   marketId: string;
   name: string;
   tractLabel: string;
@@ -55,6 +57,11 @@ export type AreaRecord = {
   nameConfidence: "high" | "medium" | "low";
   nameObservationCount: number;
   county: string;
+  /** County or county-equivalent GEOID when the source artifact supplies it. */
+  countyGeoid?: string;
+  countyType?: "county" | "county_equivalent";
+  neighborhoodId?: string | null;
+  neighborhoodType?: "neighborhood" | "planning_area" | null;
   state: string;
   stateAbbr: string;
   city: string;
@@ -65,6 +72,8 @@ export type AreaRecord = {
     type: "Polygon" | "MultiPolygon";
     coordinates: number[][][] | number[][][][];
   };
+  /** Boundary vintage rendered on the map; may differ from metric geography. */
+  geometryVintage?: string;
   score: number | null;
   scores: Record<ScoreKey, number | null>;
   metrics: AreaMetrics;

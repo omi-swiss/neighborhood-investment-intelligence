@@ -14,6 +14,7 @@ import {
 } from "../../lib/areas";
 import { remainingGaps } from "../../lib/remaining-gaps";
 import { areaDecisionInsight, buildMarketCenters, investorAreaName } from "../../lib/area-insights";
+import { appendContext } from "../../lib/investor-context";
 
 type Props = { params: Promise<{ id: string }> };
 const marketCenters = buildMarketCenters(dataset.areas);
@@ -40,6 +41,13 @@ export default async function AreaDetailPage({ params }: Props) {
   if (!area) notFound();
   const areaName = investorAreaName(area, marketCenters[area.marketId]);
   const insight = areaDecisionInsight(area);
+  const propertyResearchUrl = appendContext("/properties", {
+    version: 1,
+    marketId: area.marketId,
+    tractGeoid: area.id,
+    returnTo: `/areas/${area.id}`,
+  });
+  const listingIntakeUrl = `${propertyResearchUrl}&intake=manual#authorized-workspace`;
   const incomeTrend = area.trends.filter((point) => point.income !== null);
   const cityBenchmark = dataset.benchmarks.byCity[area.city] ?? dataset.benchmarks.city;
   const metroBenchmark = dataset.benchmarks.byMetro[area.metro] ?? dataset.benchmarks.metro;
@@ -76,7 +84,10 @@ export default async function AreaDetailPage({ params }: Props) {
           <section className="detail-card wide-card area-decision-brief">
             <div className="section-heading">
               <div><p className="eyebrow">What the platform found</p><h2>Investor decision snapshot</h2></div>
-              <Link className="button primary" href={`/properties?market=${encodeURIComponent(area.city)}`}>Analyze a property in {area.city}</Link>
+              <div className="actions">
+                <Link className="button" href={propertyResearchUrl}>Browse property research</Link>
+                <Link className="button primary" href={listingIntakeUrl}>Analyze a listing you found</Link>
+              </div>
             </div>
             <div className="decision-score-grid">
               <MetricTile label="Opportunity score" value={area.score?.toFixed(0) ?? "Not available"} note="Strategy-weighted area rank" />
@@ -179,7 +190,7 @@ export default async function AreaDetailPage({ params }: Props) {
                     : `No tract identifier is published with the available ${area.city} records, so the latest city records are shown as context.`}
                 </p>
               </div>
-              <Link className="button" href={`/properties?market=${encodeURIComponent(area.city)}`}>
+              <Link className="button" href={propertyResearchUrl}>
                 Browse {area.city}
               </Link>
             </div>

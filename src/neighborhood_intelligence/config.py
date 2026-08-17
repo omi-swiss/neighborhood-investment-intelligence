@@ -23,7 +23,10 @@ class Settings(BaseSettings):
     published_dir: Path = Path("data/published")
     acs_years: list[int] = Field(default_factory=lambda: [2019, 2020, 2021, 2022, 2023, 2024])
     states: list[str] = Field(default_factory=list)
+    opportunity_cohort_states: list[str] = Field(default_factory=list)
+    opportunity_cohort_city_geoids: list[str] = Field(default_factory=list)
     reference_geography_vintage: str = "2020"
+    display_geography_vintage: str = "2025"
     inflation_reference_year: int = 2024
     acs_api_base: str = "https://api.census.gov/data"
     lodes_base: str = "https://lehd.ces.census.gov/data/lodes"

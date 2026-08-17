@@ -16,8 +16,10 @@ from shapely.geometry import mapping
 
 DEFAULT_DATABASE = Path(os.environ.get("NII_DATABASE_PATH", "data/warehouse/nii.duckdb"))
 DEFAULT_OUTPUT = Path("web/app/data/areas.generated.json")
-SCORE_YEAR = 2023
-TREND_START_YEAR = 2019
+# The analytical cohort is ACS 2020--2024 on 2020 Census tract geography.
+# Do not add pre-2020 ACS rows here without an approved geography crosswalk.
+SCORE_YEAR = 2024
+TREND_START_YEAR = 2020
 SUPPORTED_MARKETS = [
     {
         "id": "place:1150000",
@@ -244,6 +246,39 @@ def export(database: Path, output: Path) -> dict[str, Any]:
     ).fetchdf()
     if rows.empty:
         raise RuntimeError("No comparable supported-market tract rows are available")
+    available_city_geoids = {str(city_geoid) for city_geoid in rows["city_geoid"].unique()}
+    missing_markets = [
+        market["city"]
+        for market in SUPPORTED_MARKETS
+        if market["city_geoid"] not in available_city_geoids
+    ]
+    if missing_markets:
+        raise RuntimeError(
+            "Refusing to publish a partial comparable cohort; missing supported markets: "
+            + ", ".join(missing_markets)
+        )
+    coverage_rows = connection.execute(
+        """
+        SELECT city_geoid, reporting_year
+        FROM analytics.tract_year_profile
+        WHERE city_geoid IN (SELECT unnest(?))
+          AND reporting_year BETWEEN ? AND ?
+        GROUP BY city_geoid, reporting_year
+        """,
+        [city_geoids, TREND_START_YEAR, SCORE_YEAR],
+    ).fetchall()
+    covered_units = {(str(city_geoid), int(year)) for city_geoid, year in coverage_rows}
+    missing_units = [
+        f"{market['city']} {year}"
+        for market in SUPPORTED_MARKETS
+        for year in range(TREND_START_YEAR, SCORE_YEAR + 1)
+        if (market["city_geoid"], year) not in covered_units
+    ]
+    if missing_units:
+        raise RuntimeError(
+            "Refusing to publish without complete ACS cohort coverage: "
+            + ", ".join(missing_units)
+        )
     rows = _score_frame(rows)
 
     tract_ids = rows["tract_geoid"].tolist()
@@ -279,25 +314,38 @@ def export(database: Path, output: Path) -> dict[str, Any]:
             }
         )
 
-    neighborhood_rows = connection.execute(
+    has_property_sales = connection.execute(
         """
-        SELECT
-          tract_geoid,
-          neighborhood,
-          count(*) AS observation_count,
-          row_number() OVER (
-            PARTITION BY tract_geoid
-            ORDER BY count(*) DESC, neighborhood
-          ) AS rank
-        FROM analytics.property_recent_recorded_sale
-        WHERE tract_geoid IN (SELECT unnest(?))
-          AND neighborhood IS NOT NULL
-          AND trim(neighborhood) <> ''
-        GROUP BY tract_geoid, neighborhood
-        QUALIFY rank = 1
-        """,
-        [tract_ids],
-    ).fetchdf()
+        SELECT count(*)
+        FROM information_schema.tables
+        WHERE table_schema = 'analytics'
+          AND table_name = 'property_recent_recorded_sale'
+        """
+    ).fetchone()[0]
+    if has_property_sales:
+        neighborhood_rows = connection.execute(
+            """
+            SELECT
+              tract_geoid,
+              neighborhood,
+              count(*) AS observation_count,
+              row_number() OVER (
+                PARTITION BY tract_geoid
+                ORDER BY count(*) DESC, neighborhood
+              ) AS rank
+            FROM analytics.property_recent_recorded_sale
+            WHERE tract_geoid IN (SELECT unnest(?))
+              AND neighborhood IS NOT NULL
+              AND trim(neighborhood) <> ''
+            GROUP BY tract_geoid, neighborhood
+            QUALIFY rank = 1
+            """,
+            [tract_ids],
+        ).fetchdf()
+    else:
+        neighborhood_rows = pd.DataFrame(
+            columns=["tract_geoid", "neighborhood", "observation_count"]
+        )
     neighborhoods_by_tract = {
         record["tract_geoid"]: {
             "name": " ".join(str(record["neighborhood"]).split()),
@@ -456,11 +504,11 @@ def export(database: Path, output: Path) -> dict[str, Any]:
             "scoreVersion": "nine-city-2.0",
             "source": "U.S. Census Bureau ACS 5-year",
             "sourceUrl": "https://www.census.gov/programs-surveys/acs",
-            "availableAt": "2024-12-12",
+            "availableAt": "2026-01-29",
             "observationType": "observed and derived",
             "limitations": [
                 "Scores rank comparable tracts across the nine supported city-proper markets.",
-                "Growth uses overlapping ACS 2019 and 2023 five-year windows on 2010 geography.",
+                "Growth uses overlapping ACS 2020 and 2024 five-year windows on 2020 Census tract geography.",
                 "Gross yield is a screening proxy based on area median rent and value, not property NOI.",
                 "Official neighborhood labels are partial. A tract label is shown when no verified neighborhood source is available.",
                 "Permits, flood, regulation, property, and signal coverage varies by market and stays explicitly unavailable where absent.",

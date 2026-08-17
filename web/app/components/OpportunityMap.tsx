@@ -188,15 +188,29 @@ export function OpportunityMap({ areas, contextAreas, focusCity, focusLabel, sel
   const [boxZoomMode, setBoxZoomMode] = useState(false);
   const [zoomBox, setZoomBox] = useState<{ start: Point; end: Point } | null>(null);
   const [hoveredArea, setHoveredArea] = useState<{ area: AreaRecord; point: Point } | null>(null);
+  const [activeAreaId, setActiveAreaId] = useState<string | null>(selectedId);
+  const evidenceAvailable = focusCity === "place:1150000";
   const svgRef = useRef<SVGSVGElement>(null);
   const mapContentRef = useRef<SVGGElement>(null);
   const dragState = useRef<DragState | null>(null);
   const didPan = useRef(false);
+  const wheelFrame = useRef<number | null>(null);
+  const pendingWheel = useRef<{ delta: number; point: Point } | null>(null);
   const resultIds = useMemo(() => new Set(areas.map((area) => area.id)), [areas]);
   const visibleContextAreas = useMemo(
     () => contextAreas.filter((area) => !resultIds.has(area.id)),
     [contextAreas, resultIds],
   );
+  const geometryNotice = useMemo(() => {
+    const renderedAreas = contextAreas.length ? contextAreas : areas;
+    const vintages = new Set(renderedAreas.map((area) => area.geometryVintage ?? "2020"));
+    const displayCount = renderedAreas.filter((area) => area.geometryVintage === "2025").length;
+    if (vintages.size === 1 && vintages.has("2025")) {
+      return `Map boundary: 2025 TIGER/Line display geometry (${displayCount} matched tracts)`;
+    }
+    if (vintages.has("2025")) return "Map boundary: 2025 TIGER/Line where available; 2020 elsewhere";
+    return "Map boundary: 2020 Census tract geography";
+  }, [areas, contextAreas]);
   const marketCenters = useMemo(
     () => buildMarketCenters(contextAreas.length ? contextAreas : areas),
     [areas, contextAreas],
@@ -209,6 +223,23 @@ export function OpportunityMap({ areas, contextAreas, focusCity, focusLabel, sel
     () => areas.map((area) => ({ area, path: pathFor(area, bounds) })),
     [areas, bounds],
   );
+
+  useEffect(() => {
+    if (selectedId && areas.some((area) => area.id === selectedId)) {
+      setActiveAreaId(selectedId);
+    } else if (!activeAreaId || !areas.some((area) => area.id === activeAreaId)) {
+      setActiveAreaId(areas[0]?.id ?? null);
+    }
+  }, [activeAreaId, areas, selectedId]);
+
+  function moveActiveArea(currentId: string, direction: 1 | -1) {
+    const currentIndex = areas.findIndex((area) => area.id === currentId);
+    const nextIndex = currentIndex < 0 ? 0 : (currentIndex + direction + areas.length) % areas.length;
+    const next = areas[nextIndex];
+    if (!next) return;
+    setActiveAreaId(next.id);
+    requestAnimationFrame(() => document.getElementById(`map-area-${next.id}`)?.focus());
+  }
   const orientationLabels = useMemo<OrientationLabel[]>(() => {
     if (focusCity !== "all") return MARKET_LANDMARKS[focusCity] ?? [];
     const grouped = new Map<string, { city: string; stateAbbr: string; longitudes: number[]; latitudes: number[] }>();
@@ -246,10 +277,9 @@ export function OpportunityMap({ areas, contextAreas, focusCity, focusLabel, sel
 
   useEffect(() => {
     if (layer === "opportunity") return;
-    if ((layer === "development" && developmentPins.length) || (layer === "environment" && environmentalPins.length) || (layer === "flood" && Object.keys(floodByTract).length)) return;
     let cancelled = false;
     setSignalLoading(true);
-    fetch(`/api/signals?layer=${layer}&limit=5000`)
+    fetch(`/api/signals?layer=${layer}&marketId=${encodeURIComponent(focusCity)}&limit=500`)
       .then((response) => response.json())
       .then((payload: { total: number; items: DevelopmentPin[] | EnvironmentalPin[] | Array<{ tractGeoid: string; sfhaAreaShare: number }> }) => {
         if (cancelled) return;
@@ -267,7 +297,7 @@ export function OpportunityMap({ areas, contextAreas, focusCity, focusLabel, sel
       })
       .catch(() => { if (!cancelled) setSignalLoading(false); });
     return () => { cancelled = true; };
-  }, [layer, developmentPins.length, environmentalPins.length, floodByTract]);
+  }, [focusCity, layer]);
 
   function eventPoint(event: { clientX: number; clientY: number }): Point | null {
     const element = svgRef.current;
@@ -275,6 +305,21 @@ export function OpportunityMap({ areas, contextAreas, focusCity, focusLabel, sel
     const rect = element.getBoundingClientRect();
     if (!rect.width || !rect.height) return null;
     return [Math.max(0, Math.min(MAP_WIDTH, ((event.clientX - rect.left) / rect.width) * MAP_WIDTH)), Math.max(0, Math.min(MAP_HEIGHT, ((event.clientY - rect.top) / rect.height) * MAP_HEIGHT))];
+  }
+
+  function handleWheel(event: React.WheelEvent<SVGSVGElement>) {
+    const point = eventPoint(event);
+    if (!point) return;
+    event.preventDefault();
+    const delta = Math.max(-0.12, Math.min(0.12, -event.deltaY * 0.001));
+    pendingWheel.current = { delta, point };
+    if (wheelFrame.current !== null) return;
+    wheelFrame.current = requestAnimationFrame(() => {
+      const pending = pendingWheel.current;
+      pendingWheel.current = null;
+      wheelFrame.current = null;
+      if (pending) setBounds((current) => zoomBounds(current, Math.exp(pending.delta), pending.point));
+    });
   }
 
   function handlePointerDown(event: React.PointerEvent<SVGSVGElement>) {
@@ -341,13 +386,15 @@ export function OpportunityMap({ areas, contextAreas, focusCity, focusLabel, sel
         </div>
         <span className="map-control-divider" aria-hidden="true" />
         {([ ["opportunity", "Opportunity"], ["development", "Development"], ["flood", "Flood"], ["environment", "EPA facilities"] ] as const).map(([value, label]) => (
-          <button className={layer === value ? "active" : ""} key={value} onClick={() => { setLayer(value); setSelectedSignal(null); }}>{label}</button>
+          <button aria-describedby={!evidenceAvailable && value !== "opportunity" ? "map-evidence-coverage" : undefined} className={layer === value ? "active" : ""} disabled={!evidenceAvailable && value !== "opportunity"} key={value} onClick={() => { setLayer(value); setSelectedSignal(null); }}>{label}</button>
         ))}
       </div>
       <div className="map-note">
-        {signalLoading ? "Loading evidence layer..." : mapLabel} / 2020 tract geography
+        {signalLoading ? "Loading evidence layer..." : mapLabel} / {geometryNotice}
         {` / ${focusLabel}`}
+        <span>Metrics retain their source geography: ACS values use 2020 Census tracts.</span>
         {layer === "opportunity" ? "" : " / DC evidence only"}
+        {!evidenceAvailable ? <span id="map-evidence-coverage">Development, flood, and EPA layers are not available for this market.</span> : null}
         <span>Scroll to zoom; drag to pan; choose Box zoom (or hold Shift) and highlight an area.</span>
       </div>
       {loading && !areas.length ? (
@@ -366,13 +413,7 @@ export function OpportunityMap({ areas, contextAreas, focusCity, focusLabel, sel
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
-          onWheel={(event) => {
-            const point = eventPoint(event);
-            if (!point) return;
-            event.preventDefault();
-            const delta = Math.max(-0.12, Math.min(0.12, -event.deltaY * 0.001));
-            setBounds((current) => zoomBounds(current, Math.exp(delta), point));
-          }}
+          onWheel={handleWheel}
         >
           <g ref={mapContentRef}>
           <g aria-hidden="true">{contextPaths.map(({ area, path }) => <path className="map-context-area" d={path} key={`context-${area.id}`} />)}</g>
@@ -383,6 +424,7 @@ export function OpportunityMap({ areas, contextAreas, focusCity, focusLabel, sel
               d={path}
               fill={layer === "flood" ? floodColor(floodByTract[area.id]) : layer === "opportunity" ? scoreColor(area.score) : "#e8ece5"}
               key={area.id}
+              id={`map-area-${area.id}`}
               onClick={() => { if (didPan.current) { didPan.current = false; return; } onSelect(area); }}
               onDoubleClick={() => window.location.assign(`/areas/${area.id}`)}
               onPointerEnter={(event) => {
@@ -404,11 +446,18 @@ export function OpportunityMap({ areas, contextAreas, focusCity, focusLabel, sel
                 if (event.key === "Enter" || event.key === " ") {
                   event.preventDefault();
                   onSelect(area);
+                } else if (event.key === "ArrowRight" || event.key === "ArrowDown") {
+                  event.preventDefault();
+                  moveActiveArea(area.id, 1);
+                } else if (event.key === "ArrowLeft" || event.key === "ArrowUp") {
+                  event.preventDefault();
+                  moveActiveArea(area.id, -1);
                 }
               }}
+              onFocus={() => setActiveAreaId(area.id)}
               opacity={selectedId && selectedId !== area.id ? 0.67 : 0.95}
               role="button"
-              tabIndex={0}
+              tabIndex={activeAreaId === area.id ? 0 : -1}
             />
           ))}
           {layer === "development" ? developmentPins.map((pin) => {
@@ -430,7 +479,7 @@ export function OpportunityMap({ areas, contextAreas, focusCity, focusLabel, sel
                 }}
                 r={2.35}
                 role="button"
-                tabIndex={0}
+                tabIndex={-1}
               />
             );
           }) : null}
@@ -454,7 +503,7 @@ export function OpportunityMap({ areas, contextAreas, focusCity, focusLabel, sel
                 }}
                 r={1.55}
                 role="button"
-                tabIndex={0}
+                tabIndex={-1}
               />
             );
           }) : null}

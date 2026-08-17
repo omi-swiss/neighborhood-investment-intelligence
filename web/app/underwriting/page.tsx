@@ -1,16 +1,23 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { FinancialWorkbench } from "../components/FinancialWorkbench";
 import { PageShell } from "../components/PageShell";
+import { contextFromSearch } from "../lib/investor-context";
 
 export const metadata: Metadata = {
   title: "Financial Underwriting",
   description: "Auditable acquisition, financing, operating, scenario, and multi-year return analysis.",
 };
 
-type Props = { searchParams: Promise<{ propertyId?: string; modelId?: string }> };
+type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 
 export default async function UnderwritingPage({ searchParams }: Props) {
-  const { propertyId, modelId } = await searchParams;
+  const query = await searchParams;
+  const context = contextFromSearch(new URLSearchParams(
+    Object.entries(query).flatMap(([key, value]) => typeof value === "string" ? [[key, value]] : []),
+  ));
+  const propertyId = typeof query.propertyId === "string" ? query.propertyId : undefined;
+  const modelId = typeof query.modelId === "string" ? query.modelId : undefined;
   return (
     <PageShell
       active="Underwriting"
@@ -25,6 +32,7 @@ export default async function UnderwritingPage({ searchParams }: Props) {
         },
       ]}
     >
+      {context.returnTo ? <Link className="back-link" href={context.returnTo}>← Return to property</Link> : null}
       <FinancialWorkbench propertyId={propertyId} modelId={modelId} />
     </PageShell>
   );

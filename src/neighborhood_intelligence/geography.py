@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from zipfile import ZipFile
 import httpx
@@ -29,20 +30,20 @@ def download_tiger_archive(settings: Settings, source_name: str, url: str, desti
     return destination
 
 
-def download_tract_geography(settings: Settings, state_fips: str) -> Path:
-    vintage = settings.reference_geography_vintage
+def download_tract_geography(settings: Settings, state_fips: str, vintage: str | None = None) -> Path:
+    vintage = vintage or settings.reference_geography_vintage
     destination = settings.raw_dir / "census_tiger" / vintage / f"state={state_fips}" / "tract.zip"
     return download_tiger_archive(settings, "tract", tiger_tract_url(settings, vintage, state_fips), destination)
 
 
-def download_place_geography(settings: Settings, state_fips: str) -> Path:
-    vintage = settings.reference_geography_vintage
+def download_place_geography(settings: Settings, state_fips: str, vintage: str | None = None) -> Path:
+    vintage = vintage or settings.reference_geography_vintage
     destination = settings.raw_dir / "census_tiger" / vintage / f"state={state_fips}" / "place.zip"
     return download_tiger_archive(settings, "place", tiger_place_url(settings, vintage, state_fips), destination)
 
 
-def download_cbsa_geography(settings: Settings) -> Path:
-    vintage = settings.reference_geography_vintage
+def download_cbsa_geography(settings: Settings, vintage: str | None = None) -> Path:
+    vintage = vintage or settings.reference_geography_vintage
     destination = settings.raw_dir / "census_tiger" / vintage / "cbsa" / "us.zip"
     return download_tiger_archive(settings, "cbsa", tiger_cbsa_url(settings, vintage), destination)
 
@@ -183,3 +184,57 @@ def assign_tract_context(conn: object, state_fips: str, vintage: str) -> tuple[i
         persist_geography_assignments(conn, join_layer(place_rows), "place", vintage),
         persist_geography_assignments(conn, join_layer(cbsa_rows), "cbsa", vintage),
     )
+
+
+def export_display_geography_web_payload(
+    conn: object,
+    destination: Path,
+    display_vintage: str,
+    metric_geography_vintage: str,
+    city_geoids: list[str] | None = None,
+) -> int:
+    """Write display-only tract geometry keyed by stable GEOID.
+
+    This artifact deliberately contains no metrics. Consumers may render its
+    current boundary geometry only while retaining the metric source's own
+    geography vintage in labels and analytical joins.
+    """
+    try:
+        from shapely import wkt
+        from shapely.geometry import mapping
+    except ImportError as error:
+        raise RuntimeError("Install the geospatial extra before exporting display geometry.") from error
+    query = """
+        SELECT geoid, geometry_wkt
+        FROM standardized.geography AS tract
+        WHERE geography_type='tract' AND geography_vintage=? AND geometry_wkt IS NOT NULL
+    """
+    parameters: list[object] = [display_vintage]
+    if city_geoids:
+        query += """
+          AND EXISTS (
+            SELECT 1
+            FROM standardized.geography_assignment AS assignment
+            JOIN standardized.geography AS place
+              ON place.geography_id = assignment.assigned_geography_id
+            WHERE assignment.subject_geography_id = tract.geography_id
+              AND assignment.assignment_type = 'place'
+              AND place.geoid IN (SELECT unnest(?))
+          )
+        """
+        parameters.append(city_geoids)
+    query += """
+        ORDER BY geoid
+    """
+    rows = conn.execute(query, parameters).fetchall()
+    payload = {
+        "version": 1,
+        "displayGeographyVintage": display_vintage,
+        "metricGeographyVintage": metric_geography_vintage,
+        "source": "U.S. Census Bureau TIGER/Line",
+        "sourceUrl": "https://www.census.gov/geographies/mapping-files/time-series/geo/tiger-line-file.html",
+        "areas": {geoid: mapping(wkt.loads(geometry_wkt)) for geoid, geometry_wkt in rows},
+    }
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    destination.write_text(json.dumps(payload, separators=(",", ":")), encoding="utf-8")
+    return len(rows)

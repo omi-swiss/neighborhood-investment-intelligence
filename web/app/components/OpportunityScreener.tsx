@@ -26,7 +26,7 @@ import type {
 import { AppNavigation } from "./AppNavigation";
 import { DataVintageNotice } from "./DataVintageNotice";
 import { OpportunityMap } from "./OpportunityMap";
-import { PROPERTY_TYPES } from "../lib/property-types";
+import { appendContext } from "../lib/investor-context";
 
 type AreaResponse = {
   items: AreaRecord[];
@@ -40,7 +40,6 @@ type AreaResponse = {
 
 type InvestorSearch = {
   strategy: string;
-  propertyType: string;
   minimumPrice: number;
   maximumPrice: number;
   minimumCashOnCash: number;
@@ -71,7 +70,6 @@ const investorStrategies = [
 
 const defaultInvestorSearch: InvestorSearch = {
   strategy: "balanced",
-  propertyType: "",
   minimumPrice: 100_000,
   maximumPrice: 750_000,
   minimumCashOnCash: 0.08,
@@ -111,7 +109,6 @@ export function OpportunityScreener({
   const [strategies, setStrategies] = useState<StrategyDefinition[]>(builtInStrategies);
   const [compareIds, setCompareIds] = useState<string[]>([]);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
-  const [tablePinnedId, setTablePinnedId] = useState<string | null>(null);
   const [investorSearch, setInvestorSearch] = useState<InvestorSearch>(defaultInvestorSearch);
   const [searchApplied, setSearchApplied] = useState(false);
   const [filterSuggestions, setFilterSuggestions] = useState<FilterSuggestion[]>([]);
@@ -193,8 +190,14 @@ export function OpportunityScreener({
   const selectedMarket = markets.find((market) => market.id === draft.city);
   const propertySearchParams = new URLSearchParams({
     ...(selectedMarket ? { market: selectedMarket.city } : {}),
-    ...(investorSearch.propertyType ? { propertyType: investorSearch.propertyType } : {}),
     maximumPrice: String(investorSearch.maximumPrice),
+  });
+  const propertyHref = appendContext(`/properties?${propertySearchParams}`, {
+    version: 1,
+    marketId: selectedMarket?.id,
+    tractGeoid: selected?.tractGeoid ?? selected?.id,
+    strategyVersion: filters.strategyVersion,
+    returnTo: "/",
   });
 
   useEffect(() => {
@@ -234,7 +237,7 @@ export function OpportunityScreener({
     const frame = requestAnimationFrame(() => {
       const row = document.getElementById(`area-row-${selected.id}`);
       row?.scrollIntoView({
-        behavior: "smooth",
+        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
         block: "nearest",
         inline: "nearest",
       });
@@ -243,10 +246,18 @@ export function OpportunityScreener({
     return () => cancelAnimationFrame(frame);
   }, [response?.items, selected, view]);
 
+  useEffect(() => {
+    if (!selected || explaining) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") closeSelectedArea();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    requestAnimationFrame(() => document.getElementById("selected-tract-dialog")?.focus());
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [explaining, selected]);
+
   function selectArea(area: AreaRecord, source: "map" | "table" = "table") {
     setSelected(area);
-    setTablePinnedId(source === "map" ? area.id : null);
-    if (source === "map") return;
     const areaIndex = response?.mapItems.findIndex((item) => item.id === area.id) ?? -1;
     const selectedPage = areaIndex < 0 ? page : Math.floor(areaIndex / 20) + 1;
     if (selectedPage !== page) {
@@ -255,12 +266,17 @@ export function OpportunityScreener({
     }
   }
 
+  function closeSelectedArea() {
+    const selectedId = selected?.id;
+    setSelected(null);
+    if (selectedId) requestAnimationFrame(() => document.getElementById(`area-row-${selectedId}`)?.focus());
+  }
+
   function applyFilters() {
     setLoading(true);
     setPage(1);
     setFilters(draft);
     setSelected(null);
-    setTablePinnedId(null);
   }
 
   function applyInvestorSearch() {
@@ -284,7 +300,6 @@ export function OpportunityScreener({
     setFilters(next);
     setPage(1);
     setSelected(null);
-    setTablePinnedId(null);
     setLoading(true);
     setSearchApplied(true);
     window.localStorage.setItem("nii-investor-search", JSON.stringify(investorSearch));
@@ -295,7 +310,6 @@ export function OpportunityScreener({
     setFilters(defaultFilters);
     setPage(1);
     setSelected(null);
-    setTablePinnedId(null);
     setLoading(true);
   }
 
@@ -304,7 +318,6 @@ export function OpportunityScreener({
     setFilters((current) => ({ ...current, city }));
     setPage(1);
     setSelected(null);
-    setTablePinnedId(null);
     setLoading(true);
   }
 
@@ -394,13 +407,6 @@ export function OpportunityScreener({
                   </select>
                 </label>
                 <label className="field">
-                  <span>Property type</span>
-                  <select value={investorSearch.propertyType} onChange={(event) => setInvestorSearch({ ...investorSearch, propertyType: event.target.value })}>
-                    <option value="">Any property type</option>
-                    {PROPERTY_TYPES.map((type) => <option value={type} key={type}>{type.replaceAll("-", " ")}</option>)}
-                  </select>
-                </label>
-                <label className="field">
                   <span>Risk tolerance</span>
                   <select value={investorSearch.riskTolerance} onChange={(event) => setInvestorSearch({ ...investorSearch, riskTolerance: event.target.value as InvestorSearch["riskTolerance"] })}>
                     <option value="conservative">Conservative</option>
@@ -429,7 +435,7 @@ export function OpportunityScreener({
               <div className="investor-search-actions">
                 <button className="button primary" type="submit">Find matching markets</button>
                 <a className="text-button" href="/settings/strategies">Advanced Strategy Settings</a>
-                {searchApplied ? <a className="button" href={`/properties?${propertySearchParams}`}>Continue to properties</a> : null}
+                {searchApplied ? <a className="button" href={propertyHref}>Continue to properties</a> : null}
               </div>
             </form>
           </section>
@@ -562,11 +568,6 @@ export function OpportunityScreener({
                     Compare {compareIds.length}
                   </a>
                 ) : null}
-                {tablePinnedId ? (
-                  <button className="button selection-clear" onClick={() => setTablePinnedId(null)}>
-                    Show all rows
-                  </button>
-                ) : null}
                 <label className="field" style={{ margin: 0 }}>
                   <span className="sr-only">Sort results</span>
                   <select
@@ -653,7 +654,7 @@ export function OpportunityScreener({
                   ) : null}
                   {view !== "map" ? (
                     <AreaTable
-                      areas={tablePinnedId && selected ? [selected] : response?.items ?? []}
+                      areas={response?.items ?? []}
                       selectedId={selected?.id ?? null}
                       hoveredId={hoveredId}
                       onHover={setHoveredId}
@@ -720,10 +721,12 @@ export function OpportunityScreener({
       </main>
 
       {selected && !explaining ? (
-        <div className="drawer" aria-label="Selected tract summary">
-          <button className="drawer-close" onClick={() => { setSelected(null); setTablePinnedId(null); }} aria-label="Close">×</button>
+        <>
+        <button className="drawer-backdrop" onClick={closeSelectedArea} aria-label="Close selected tract summary" />
+        <section className="drawer" aria-labelledby="selected-tract-title" aria-modal="true" id="selected-tract-dialog" role="dialog" tabIndex={-1}>
+          <button className="drawer-close" onClick={closeSelectedArea} aria-label="Close">×</button>
           <p className="eyebrow">Selected area</p>
-          <h2>{investorAreaName(selected, marketCenters[selected.marketId])}</h2>
+          <h2 id="selected-tract-title">{investorAreaName(selected, marketCenters[selected.marketId])}</h2>
           <p className="drawer-lead">{selected.city}, {selected.stateAbbr} · {selected.county} · {selected.tractLabel}</p>
           {selected.nameConfidence !== "high" ? <p className="label-confidence-note">Neighborhood label is approximate. Census tract remains the auditable geography.</p> : null}
           <div className="score-hero">
@@ -739,10 +742,12 @@ export function OpportunityScreener({
           <AreaInsightSummary area={selected} />
           <div className="actions" style={{ marginTop: 18 }}>
             <a className="button primary" href={`/areas/${selected.id}`}>Open area profile</a>
+            <a className="button" href={appendContext("/properties", { version: 1, marketId: selected.marketId, tractGeoid: selected.tractGeoid ?? selected.id, strategyVersion: filters.strategyVersion, returnTo: "/" })}>Find properties in this tract</a>
             <button className="button" onClick={() => setExplaining(selected)}>Explain score</button>
           </div>
           <div className="method-note">{selected.quality.warning}</div>
-        </div>
+        </section>
+        </>
       ) : null}
 
       {explaining ? (

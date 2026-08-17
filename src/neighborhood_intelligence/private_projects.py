@@ -32,9 +32,18 @@ EVIDENCE_TYPES = {
     "PLANNING_RECORD",
     "FINANCING_RECORD",
     "PROPERTY_RECORD",
+    "CONSTRUCTION_RECORD",
     "GOVERNMENT_ANNOUNCEMENT",
     "NEWS_REPORT",
     "OTHER",
+}
+COORDINATE_PRECISIONS = {"SITE", "PARCEL", "ADDRESS", "EXACT", "APPROXIMATE", "COUNTY_CENTROID"}
+STATUS_EVIDENCE = {
+    "PERMITTED": {"PERMIT"},
+    "FINANCED": {"FINANCING_RECORD"},
+    "UNDER_CONSTRUCTION": {"CONSTRUCTION_RECORD"},
+    "OPERATING": {"CONSTRUCTION_RECORD", "PROPERTY_RECORD"},
+    "COMPLETED": {"CONSTRUCTION_RECORD", "PROPERTY_RECORD"},
 }
 VERIFICATION = {"VERIFIED", "NEEDS_REVIEW"}
 CONFIDENCE = {"LOW", "MEDIUM", "HIGH"}
@@ -67,6 +76,7 @@ def iter_projects(path: Path, run_id: str) -> Iterator[tuple[object, ...]]:
             evidence_type = _required(row, "evidence_type").upper()
             funding_status = _required(row, "funding_status").upper()
             confidence = _required(row, "confidence_level").upper()
+            coordinate_precision = _required(row, "coordinate_precision").upper()
             county = _required(row, "county_geoid")
             primary_source = _required(row, "primary_source_url")
             latitude, longitude = float(_required(row, "latitude")), float(_required(row, "longitude"))
@@ -77,6 +87,7 @@ def iter_projects(path: Path, run_id: str) -> Iterator[tuple[object, ...]]:
                 or evidence_type not in EVIDENCE_TYPES
                 or funding_status not in FUNDING_STATUSES
                 or confidence not in CONFIDENCE
+                or coordinate_precision not in COORDINATE_PRECISIONS
                 or len(county) != 5
                 or not county.isdigit()
                 or not -90 <= latitude <= 90
@@ -86,6 +97,11 @@ def iter_projects(path: Path, run_id: str) -> Iterator[tuple[object, ...]]:
             if verification == "VERIFIED" and (not last_verified or evidence_type == "NEWS_REPORT"):
                 raise ValueError(
                     "Verified private projects need a verification date and non-news primary evidence."
+                )
+            if status in STATUS_EVIDENCE and evidence_type not in STATUS_EVIDENCE[status]:
+                raise ValueError(
+                    f"Private-project status {status} requires evidence type one of "
+                    f"{sorted(STATUS_EVIDENCE[status])}; announcements must remain ANNOUNCED."
                 )
             yield (
                 _required(row, "project_id"),
@@ -100,7 +116,7 @@ def iter_projects(path: Path, run_id: str) -> Iterator[tuple[object, ...]]:
                 county,
                 latitude,
                 longitude,
-                _required(row, "coordinate_precision").upper(),
+                coordinate_precision,
                 primary_source,
                 verification,
                 run_id,

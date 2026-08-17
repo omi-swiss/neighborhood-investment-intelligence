@@ -1,15 +1,27 @@
 from __future__ import annotations
 
 import json
+from hashlib import sha256
 from datetime import date
 from pathlib import Path
 import logging
-from itertools import batched
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import subprocess
+import sys
+try:
+    from itertools import batched
+except ImportError:  # Python 3.11 compatibility; itertools.batched arrived in 3.12.
+    from itertools import islice
+
+    def batched(iterable, size):
+        iterator = iter(iterable)
+        while batch := tuple(islice(iterator, size)):
+            yield batch
 from uuid import uuid4
 
 import typer
 
-from .acs import CensusAcsClient, build_observations, new_run_id, now_utc, persist_raw
+from .acs import CensusAcsClient, build_observations, new_run_id, now_utc, persist_observations, persist_raw
 from .bps import BpsClient, iter_county_observations, persist_raw as persist_bps_raw
 from .catalog import OFFICIAL_SOURCES, PHASE8_OFFICIAL_SOURCES
 from .config import load_settings
@@ -22,6 +34,7 @@ from .geography import (
     download_cbsa_geography,
     download_place_geography,
     download_tract_geography,
+    export_display_geography_web_payload,
     load_cbsa_geography,
     load_place_geography,
     load_tract_geography,
@@ -111,32 +124,196 @@ def register_sources() -> None:
     typer.echo(f"Registered {len(sources)} sources")
 
 
+def _completed_acs_units(conn, states: list[str], years: list[int]) -> set[tuple[int, str]]:
+    """Return state-years with a successful run and observations, for safe resume only."""
+    if not states or not years:
+        return set()
+    rows = conn.execute(
+        """
+        WITH latest_runs AS (
+          SELECT
+            cast(json_extract_string(request_parameters, '$.year') AS INTEGER) AS reporting_year,
+            json_extract_string(request_parameters, '$.state') AS state_fips,
+            status,
+            row_number() OVER (
+              PARTITION BY json_extract_string(request_parameters, '$.year'),
+                json_extract_string(request_parameters, '$.state')
+              ORDER BY started_at DESC
+            ) AS latest
+          FROM meta.ingestion_run
+          WHERE source_id = 'census_acs5'
+        )
+        SELECT reporting_year, state_fips
+        FROM latest_runs
+        WHERE latest = 1 AND status = 'SUCCEEDED'
+          AND reporting_year IN (SELECT unnest(?))
+          AND state_fips IN (SELECT unnest(?))
+          AND EXISTS (
+            SELECT 1
+            FROM standardized.acs_observation AS observation
+            WHERE observation.reporting_year = latest_runs.reporting_year
+              AND observation.tract_geoid LIKE latest_runs.state_fips || '%'
+          )
+        """,
+        [years, states],
+    ).fetchall()
+    return {(int(year), str(state)) for year, state in rows}
+
+
+def _write_acs_unit(conn, settings, year: int, state: str, run_id: str, payload) -> int:
+    records, request_url, raw = payload
+    asset_path, digest = persist_raw(settings.raw_dir, year, state, raw)
+    rows = build_observations(records, year, run_id)
+    conn.execute("BEGIN TRANSACTION")
+    try:
+        persist_observations(conn, rows)
+        conn.execute(
+            "INSERT INTO raw.source_asset VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            [str(uuid4()), run_id, request_url, now_utc(), str(asset_path), digest, len(raw), "acs-api-json-v1", "See source catalog"],
+        )
+        conn.execute(
+            "UPDATE meta.ingestion_run SET completed_at=?, status='SUCCEEDED', record_count=?, checksum_sha256=? WHERE run_id=?",
+            [now_utc(), len(records), digest, run_id],
+        )
+        conn.execute("COMMIT")
+    except Exception:
+        conn.execute("ROLLBACK")
+        raise
+    return len(records)
+
+
 @app.command("ingest-acs")
-def ingest_acs(state: list[str] = typer.Option(None, "--state"), year: list[int] = typer.Option(None, "--year")) -> None:
+def ingest_acs(
+    state: list[str] = typer.Option(None, "--state"),
+    year: list[int] = typer.Option(None, "--year"),
+    fetch_workers: int = typer.Option(3, "--fetch-workers", min=1, max=8),
+    resume: bool = typer.Option(False, "--resume"),
+) -> None:
     """Ingest ACS 5-year tract observations for selected states and vintages."""
     settings, conn = database()
-    client = CensusAcsClient(settings)
     states, years = state or settings.states, year or settings.acs_years
-    for current_year in years:
-        client.verify_variables(current_year)
-        for state_fips in states:
-            run_id = new_run_id()
-            conn.execute("INSERT INTO meta.ingestion_run VALUES (?, 'census_acs5', ?, NULL, 'RUNNING', ?, NULL, NULL, NULL)", [run_id, now_utc(), f'{{"year": {current_year}, "state": "{state_fips}"}}'])
-            try:
-                records, request_url, raw = client.fetch_state_tracts(current_year, state_fips)
-                asset_path, digest = persist_raw(settings.raw_dir, current_year, state_fips, raw)
-                rows = build_observations(records, current_year, run_id)
-                conn.execute("BEGIN TRANSACTION")
-                conn.executemany("INSERT OR REPLACE INTO standardized.acs_observation VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", rows)
-                conn.execute("INSERT INTO raw.source_asset VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", [str(uuid4()), run_id, request_url, now_utc(), str(asset_path), digest, len(raw), "acs-api-json-v1", "See source catalog"])
-                conn.execute("UPDATE meta.ingestion_run SET completed_at=?, status='SUCCEEDED', record_count=?, checksum_sha256=? WHERE run_id=?", [now_utc(), len(records), digest, run_id])
-                conn.execute("COMMIT")
-                logger.info("ingested year=%s state=%s records=%s", current_year, state_fips, len(records))
-            except Exception as error:
-                conn.execute("UPDATE meta.ingestion_run SET completed_at=?, status='FAILED', error_message=? WHERE run_id=?", [now_utc(), str(error), run_id])
-                logger.exception("ingestion failed year=%s state=%s", current_year, state_fips)
-                raise
+    completed = _completed_acs_units(conn, states, years) if resume else set()
+    units = [(current_year, state_fips) for current_year in years for state_fips in states]
+    units = [unit for unit in units if unit not in completed]
+    if not units:
+        conn.close()
+        typer.echo("ACS ingestion already complete for requested state-years")
+        return
+    with CensusAcsClient(settings) as client:
+        for current_year in sorted(set(year for year, _ in units)):
+            client.verify_variables(current_year)
+        failures: list[str] = []
+        with ThreadPoolExecutor(max_workers=fetch_workers) as executor:
+            futures = {
+                executor.submit(client.fetch_state_tracts, current_year, state_fips): (current_year, state_fips)
+                for current_year, state_fips in units
+            }
+            for future in as_completed(futures):
+                current_year, state_fips = futures[future]
+                run_id = new_run_id()
+                conn.execute("INSERT INTO meta.ingestion_run VALUES (?, 'census_acs5', ?, NULL, 'RUNNING', ?, NULL, NULL, NULL)", [run_id, now_utc(), f'{{"year": {current_year}, "state": "{state_fips}"}}'])
+                try:
+                    record_count = _write_acs_unit(conn, settings, current_year, state_fips, run_id, future.result())
+                    logger.info("ingested year=%s state=%s records=%s", current_year, state_fips, record_count)
+                except Exception as error:
+                    conn.execute("UPDATE meta.ingestion_run SET completed_at=?, status='FAILED', error_message=? WHERE run_id=?", [now_utc(), str(error), run_id])
+                    logger.exception("ingestion failed year=%s state=%s", current_year, state_fips)
+                    failures.append(f"{current_year}/{state_fips}")
     conn.close()
+    if failures:
+        raise RuntimeError("ACS ingestion failed for state-years: " + ", ".join(failures))
+
+
+@app.command("refresh-opportunity-cohort")
+def refresh_opportunity_cohort(
+    fetch_workers: int = typer.Option(3, "--fetch-workers", min=1, max=8),
+    resume: bool = typer.Option(False, "--resume"),
+) -> None:
+    """Refresh the configured nine-market ACS cohort without publishing a partial release."""
+    settings = load_settings()
+    if not settings.opportunity_cohort_states:
+        raise typer.BadParameter("Configure opportunity_cohort_states before refreshing the cohort")
+    years = [year for year in settings.acs_years if year >= 2020]
+    ingest_acs(
+        state=settings.opportunity_cohort_states,
+        year=years,
+        fetch_workers=fetch_workers,
+        resume=resume,
+    )
+
+
+def _artifact_metadata(path: Path) -> dict[str, object]:
+    content = path.read_bytes()
+    return {"path": str(path), "byteCount": len(content), "sha256": sha256(content).hexdigest()}
+
+
+@app.command("release-opportunity-cohort")
+def release_opportunity_cohort(
+    fetch_workers: int = typer.Option(3, "--fetch-workers", min=1, max=8),
+    resume: bool = typer.Option(False, "--resume"),
+) -> None:
+    """Build a manifest-backed local nine-market release; it never deploys."""
+    settings, conn = database()
+    states = settings.opportunity_cohort_states
+    years = [year for year in settings.acs_years if year >= 2020]
+    if not states or not settings.opportunity_cohort_city_geoids:
+        conn.close()
+        raise typer.BadParameter("Configure the opportunity cohort states and city GEOIDs before release")
+    release_id = str(uuid4())
+    started_at = now_utc()
+    conn.execute(
+        "INSERT INTO meta.opportunity_release_manifest VALUES (?, ?, NULL, 'RUNNING', ?, ?, ?, ?, NULL, NULL, NULL, NULL)",
+        [release_id, started_at, json.dumps(states), json.dumps(years), settings.reference_geography_vintage, settings.display_geography_vintage],
+    )
+    conn.close()
+    try:
+        refresh_opportunity_cohort(fetch_workers=fetch_workers, resume=resume)
+        ingest_geography(state=states)
+        ingest_display_geography(state=states)
+        build_profile_command()
+        export_profile_command()
+        export_display_geography_web_command()
+        subprocess.run([sys.executable, "scripts/export_web_phase1.py"], check=True)
+
+        _, conn = database()
+        runs = conn.execute(
+            """
+            SELECT run_id FROM (
+              SELECT run_id, row_number() OVER (
+                PARTITION BY json_extract_string(request_parameters, '$.year'),
+                  json_extract_string(request_parameters, '$.state')
+                ORDER BY started_at DESC
+              ) AS latest
+              FROM meta.ingestion_run
+              WHERE source_id='census_acs5'
+                AND cast(json_extract_string(request_parameters, '$.year') AS INTEGER) IN (SELECT unnest(?))
+                AND json_extract_string(request_parameters, '$.state') IN (SELECT unnest(?))
+            ) WHERE latest=1
+            """,
+            [years, states],
+        ).fetchall()
+        artifacts = [
+            _artifact_metadata(settings.published_dir / "tract_year_profile.parquet"),
+            _artifact_metadata(Path("web/app/data/display-geography.generated.json")),
+            _artifact_metadata(Path("web/app/data/areas.generated.json")),
+        ]
+        quality_count = conn.execute(
+            "SELECT count(*) FROM quality.data_quality_result WHERE observed_at >= ?", [started_at]
+        ).fetchone()[0]
+        conn.execute(
+            "UPDATE meta.opportunity_release_manifest SET completed_at=?, status='SUCCEEDED', source_run_ids=?, artifact_manifest=?, quality_finding_count=? WHERE release_id=?",
+            [now_utc(), json.dumps([run_id for (run_id,) in runs]), json.dumps(artifacts), quality_count, release_id],
+        )
+        conn.close()
+        typer.echo(f"Completed opportunity release {release_id}")
+    except Exception as error:
+        _, conn = database()
+        conn.execute(
+            "UPDATE meta.opportunity_release_manifest SET completed_at=?, status='FAILED', error_message=? WHERE release_id=?",
+            [now_utc(), str(error), release_id],
+        )
+        conn.close()
+        raise
 
 
 @app.command("ingest-geography")
@@ -157,6 +334,50 @@ def ingest_geography(state: list[str] = typer.Option(None, "--state")) -> None:
             state_fips, tract_count, place_count, place_assignments, cbsa_assignments,
         )
     conn.close()
+
+
+@app.command("ingest-display-geography")
+def ingest_display_geography(state: list[str] = typer.Option(None, "--state")) -> None:
+    """Load current map-display geography without changing analytical vintage joins."""
+    settings, conn = database()
+    vintage = settings.display_geography_vintage
+    cbsa_archive = download_cbsa_geography(settings, vintage)
+    cbsa_count = load_cbsa_geography(conn, cbsa_archive, vintage)
+    logger.info("loaded display CBSAs vintage=%s rows=%s", vintage, cbsa_count)
+    for state_fips in state or settings.states:
+        archive = download_tract_geography(settings, state_fips, vintage)
+        tract_count = load_tract_geography(conn, archive, state_fips, vintage)
+        place_archive = download_place_geography(settings, state_fips, vintage)
+        place_count = load_place_geography(conn, place_archive, vintage)
+        place_assignments, cbsa_assignments = assign_tract_context(conn, state_fips, vintage)
+        logger.info(
+            "loaded display geography vintage=%s state=%s tracts=%s places=%s "
+            "place_assignments=%s cbsa_assignments=%s",
+            vintage, state_fips, tract_count, place_count, place_assignments, cbsa_assignments,
+        )
+    conn.close()
+
+
+@app.command("export-display-geography-web")
+def export_display_geography_web_command(
+    destination: Path = typer.Option(
+        Path("web/app/data/display-geography.generated.json"), "--file"
+    ),
+    all_loaded_tracts: bool = typer.Option(False, "--all-loaded-tracts"),
+) -> None:
+    """Write display-only current geography for the web map; never alter metric joins."""
+    settings, conn = database()
+    count = export_display_geography_web_payload(
+        conn,
+        destination,
+        settings.display_geography_vintage,
+        settings.reference_geography_vintage,
+        None if all_loaded_tracts else settings.opportunity_cohort_city_geoids,
+    )
+    conn.close()
+    typer.echo(
+        f"Wrote {count} display-geometry tracts ({settings.display_geography_vintage}) to {destination}"
+    )
 
 
 @app.command("ingest-lodes")

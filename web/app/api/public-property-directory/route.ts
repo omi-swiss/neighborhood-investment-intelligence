@@ -73,7 +73,10 @@ export async function GET(request: Request) {
       }, {
         headers: { "Cache-Control": "public, max-age=120, stale-while-revalidate=600" },
       });
-    } catch {
+    } catch (error) {
+      const reason = error instanceof Error && error.message
+        ? error.message.replace(/^Official property source /, "")
+        : "The official property service is unavailable.";
       return Response.json({
         items: [],
         total: 0,
@@ -83,7 +86,7 @@ export async function GET(request: Request) {
         market: selectedMarket,
         coverage,
         lookupStatus: "temporarily-unavailable",
-        message: `${selectedMarket.officialSourceName} did not respond in time. Open the official search or retry.`,
+        message: `${selectedMarket.officialSourceName} could not complete this live lookup (${reason}). Open its official search or retry.`,
         source: { name: selectedMarket.officialSourceName, url: selectedMarket.officialSourceUrl },
       });
     }

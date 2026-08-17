@@ -11,6 +11,7 @@ export async function GET(request: Request) {
   const search = new URL(request.url).searchParams;
   const query = (search.get("search") ?? "").trim().toLowerCase();
   const city = (search.get("city") ?? "").trim().toLowerCase();
+  const tractGeoid = (search.get("tractGeoid") ?? "").trim();
   const propertyType = search.get("propertyType") ?? "";
   const minimumPrice = Number(search.get("minimumPrice") ?? 0);
   const maximumPrice = Number(search.get("maximumPrice") ?? Number.MAX_SAFE_INTEGER);
@@ -44,6 +45,7 @@ export async function GET(request: Request) {
       return (
         (!query || haystack.includes(query)) &&
         (!city || property.city.toLowerCase() === city) &&
+        (!tractGeoid || property.tractGeoid === tractGeoid) &&
         (!propertyType || property.propertyType === propertyType) &&
         property.askingPrice >= (Number.isFinite(minimumPrice) ? minimumPrice : 0) &&
         property.askingPrice <= (Number.isFinite(maximumPrice) ? maximumPrice : Number.MAX_SAFE_INTEGER) &&
