@@ -140,40 +140,29 @@ export function SignalsWorkspace({
         </div>
         <p className="method-note">Typical tract median rent is an unweighted summary of ACS B25064 tract estimates. It is not a citywide median or a current asking-rent estimate.</p>
         {migration ? <div className="method-note"><strong>{migrationStatus(migration.geographyType)} · {migration.geographyLabel}</strong> · IRS {migration.dataYear} · published March 19, 2026. <button className="text-button" onClick={() => setWhyMetric("migration")}>Why these migration values?</button></div> : null}
-        {context ? (
-          <div className="city-context-grid">
-            <article className="context-card">
-              <span>Median annual property tax</span>
-              <strong>{formatCurrency(context.medianAnnualPropertyTax)}</strong>
-              <small>ACS {context.propertyTaxYear} five-year estimate for owner-occupied homes; not a parcel tax quote.</small>
-            </article>
-            <article className="context-card">
-              <span>Political & governance context</span>
-              <strong>Neutral policy context</strong>
-              <small>2024 certified election context. {context.politicalContext}</small>
-            </article>
-            <article className="context-card">
-              <span>Landlord operating environment</span>
-              <strong>Relative rank {context.landlordFriendlinessRank}</strong>
-              <small>{context.landlordEnvironment}. Relative screening rank based on statewide landlord-tenant procedure and city operating requirements.</small>
-            </article>
-            {migration ? <article className="context-card migration-context">
-              <span>Income carried by movers</span>
-              <strong className={migration.netAgi >= 0 ? "signal-positive" : "signal-negative"}>
-                {formatSignedCurrency(migration.netAgi)} net AGI
-              </strong>
-              <small>
-                {formatCompactCurrency(migration.inboundAgi)} moved in and {formatCompactCurrency(migration.outboundAgi)} moved out during {migration.dataYear}. {migration.geographyLabel} is a {migration.geographyType}.
-              </small>
-              <button className="text-button" onClick={() => setWhyMetric("agi")}>Why this value?</button>
-            </article> : null}
-          </div>
-        ) : migration ? <div className="city-context-grid"><article className="context-card migration-context">
-          <span>Income carried by movers</span>
-          <strong className={migration.netAgi >= 0 ? "signal-positive" : "signal-negative"}>{formatSignedCurrency(migration.netAgi)} net AGI</strong>
-          <small>{formatCompactCurrency(migration.inboundAgi)} moved in and {formatCompactCurrency(migration.outboundAgi)} moved out during {migration.dataYear}. {migration.geographyLabel} is a {migration.geographyType}.</small>
-          <button className="text-button" onClick={() => setWhyMetric("agi")}>Why this value?</button>
-        </article></div> : null}
+        <div className="city-context-grid">
+          <ContextCard
+            label="Median annual property tax"
+            value={context ? formatCurrency(context.medianAnnualPropertyTax) : "Not yet verified"}
+            note={context ? `ACS ${context.propertyTaxYear} five-year estimate for owner-occupied homes; not a parcel tax quote.` : "No city-level ACS tax profile has been verified for this market yet."}
+          />
+          <ContextCard
+            label="Political & governance context"
+            value={context ? "Neutral policy context" : "Not yet verified"}
+            note={context ? `2024 certified election context. ${context.politicalContext}` : "No certified-election and governance-context review has been stored for this market yet."}
+          />
+          <ContextCard
+            label="Landlord operating environment"
+            value={context ? `Reference ordering ${context.landlordFriendlinessRank}` : "Not yet verified"}
+            note={context ? `${context.landlordEnvironment}. A descriptive, reviewed comparison of statewide procedure and city operating requirements; it is not a predictive score and is excluded from the opportunity ranking.` : "No primary-law review has been stored for this market yet; it is not inferred from another jurisdiction."}
+          />
+          {migration ? <article className="context-card migration-context">
+            <span>Income carried by movers</span>
+            <strong className={migration.netAgi >= 0 ? "signal-positive" : "signal-negative"}>{formatSignedCurrency(migration.netAgi)} net AGI</strong>
+            <small>{formatCompactCurrency(migration.inboundAgi)} moved in and {formatCompactCurrency(migration.outboundAgi)} moved out during {migration.dataYear}. {migration.geographyLabel} is a {migration.geographyType}.</small>
+            <button className="text-button" onClick={() => setWhyMetric("agi")}>Why this value?</button>
+          </article> : null}
+        </div>
         <p className="method-note">
           Migration uses IRS address changes on tax returns: returns approximate households, exemptions
           approximate people, and AGI measures income carried by movers. County proxies are clearly labeled
@@ -311,6 +300,10 @@ export function SignalsWorkspace({
 
 function ProfileMetric({ label, value, note }: { label: string; value: string; note: string }) {
   return <div className="metric-tile"><span>{label}</span><strong>{value}</strong><small>{note}</small></div>;
+}
+
+function ContextCard({ label, value, note }: { label: string; value: string; note: string }) {
+  return <article className="context-card"><span>{label}</span><strong>{value}</strong><small>{note}</small></article>;
 }
 
 function formatCompactCurrency(value: number) {

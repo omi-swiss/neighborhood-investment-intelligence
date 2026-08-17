@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import dataset from "../data/areas.generated.json";
+import { coreMetadata } from "../data/core-metadata";
 import { AppNavigation } from "./AppNavigation";
 import { DataVintageNotice, type DataVintageItem } from "./DataVintageNotice";
 
@@ -27,7 +27,7 @@ export function PageShell({
         <header className="topbar">
           <strong>Neighborhood Investment Intelligence</strong>
           <div className="topbar-meta">
-            <span>Core ACS {dataset.coverage.scoreReferenceYear}</span>
+            <span>Core ACS {coreMetadata.coverage.scoreReferenceYear}</span>
             <span className="health">Core data healthy</span>
             <span className="user-chip" aria-label="Private workspace">OH</span>
           </div>
@@ -41,7 +41,7 @@ export function PageShell({
             </div>
             {actions ? <div className="actions">{actions}</div> : null}
           </div>
-          <DataVintageNotice coverage={dataset.coverage} items={dataVintages} />
+          <DataVintageNotice coverage={coreMetadata.coverage} items={dataVintages} />
           {children}
         </div>
       </main>

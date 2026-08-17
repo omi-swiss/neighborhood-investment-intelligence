@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { PageShell } from "../components/PageShell";
-import dataset from "../data/areas.generated.json";
+import { coreMetadata } from "../data/core-metadata";
 import { marketContexts, marketMigrationContexts } from "../data/market-context";
 import { propertyMarketDirectory } from "../data/property-markets";
 import { marketOpenDataSources, signalSources } from "../data/signal-sources";
@@ -51,13 +51,13 @@ export default function SourcesPage() {
                   <td><strong>Core tract profiles and scores</strong></td>
                   <td>ACS 2019–2023 five-year</td>
                   <td>Production reference year 2023</td>
-                  <td><a className="source-link" href={dataset.methodology.sourceUrl} target="_blank" rel="noreferrer">U.S. Census Bureau ACS</a></td>
+                  <td><a className="source-link" href={coreMetadata.methodology.sourceUrl} target="_blank" rel="noreferrer">U.S. Census Bureau ACS</a></td>
                 </tr>
                 <tr>
                   <td><strong>Trend comparisons</strong></td>
                   <td>ACS 2019 and 2023 releases</td>
                   <td>Overlapping five-year windows</td>
-                  <td><a className="source-link" href={dataset.methodology.sourceUrl} target="_blank" rel="noreferrer">U.S. Census Bureau ACS</a></td>
+                  <td><a className="source-link" href={coreMetadata.methodology.sourceUrl} target="_blank" rel="noreferrer">U.S. Census Bureau ACS</a></td>
                 </tr>
                 <tr>
                   <td><strong>Property-tax profile</strong></td>
@@ -97,7 +97,7 @@ export default function SourcesPage() {
                 </tr>
                 <tr>
                   <td><strong>Tract boundaries</strong></td>
-                  <td>{dataset.coverage.geographyVintage} Census geography</td>
+                  <td>{coreMetadata.coverage.geographyVintage} Census geography</td>
                   <td>Boundary vintage is independent of survey year</td>
                   <td><a className="source-link" href="https://www.census.gov/geographies/mapping-files/time-series/geo/tiger-line-file.2020.html" target="_blank" rel="noreferrer">Census TIGER/Line</a></td>
                 </tr>

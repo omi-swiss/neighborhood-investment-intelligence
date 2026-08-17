@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { PageShell } from "../components/PageShell";
-import dataset from "../data/areas.generated.json";
+import { coreMetadata } from "../data/core-metadata";
 import { builtInStrategies, scoreDefinitions } from "../lib/areas";
 
 export const metadata: Metadata = { title: "Methodology" };
@@ -53,7 +53,7 @@ export default function MethodologyPage() {
             These are area-level estimates, not property appraisals or forecasts.
           </p>
           <ul className="method-list">
-            {dataset.methodology.limitations.map((limitation) => <li key={limitation}>{limitation}</li>)}
+            {coreMetadata.methodology.limitations.map((limitation) => <li key={limitation}>{limitation}</li>)}
             <li>DC-only flood, regulation, permit, and property layers are not inferred for Baltimore or Philadelphia.</li>
             <li>Scores support research; they are not financial, legal, tax, or investment advice.</li>
           </ul>

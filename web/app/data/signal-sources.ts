@@ -124,6 +124,17 @@ const hudCpdMarkets = [
   { marketId: "place:2507000", city: "Boston" },
   { marketId: "place:1271000", city: "Tampa" },
   { marketId: "place:1714000", city: "Chicago" },
+  { marketId: "place:4805000", city: "Austin" },
+  { marketId: "place:0455000", city: "Phoenix" },
+  { marketId: "place:4819000", city: "Dallas" },
+  { marketId: "place:4865000", city: "San Antonio" },
+  { marketId: "place:1245000", city: "Miami" },
+  { marketId: "place:3915000", city: "Cincinnati" },
+  { marketId: "place:3918000", city: "Columbus" },
+  { marketId: "place:5363000", city: "Seattle" },
+  { marketId: "place:4752006", city: "Nashville-Davidson" },
+  { marketId: "place:0820000", city: "Denver" },
+  { marketId: "place:3651000", city: "New York City" },
 ] as const;
 
 export const federalCommunityDevelopmentEvents: SignalEvent[] = hudCpdMarkets.map(({ marketId, city }) => ({
@@ -155,4 +166,15 @@ export const marketOpenDataSources: Record<string, { name: string; url: string; 
   "place:2507000": { name: "Analyze Boston", url: "https://data.boston.gov/", coverage: "Development review, permits, property, transportation, and capital budgets" },
   "place:1271000": { name: "Tampa Open Data", url: "https://www.tampa.gov/technology-and-innovation/data-and-maps", coverage: "Permits, planning, projects, mobility, and public works" },
   "place:1714000": { name: "Chicago Data Portal", url: "https://data.cityofchicago.org/", coverage: "Permits, zoning, contracts, TIF, transportation, and development" },
+  "place:4805000": { name: "Austin Open Data Portal", url: "https://data.austintexas.gov/", coverage: "Permits, development review, planning, mobility, and capital projects" },
+  "place:0455000": { name: "Phoenix Open Data", url: "https://www.phoenixopendata.com/", coverage: "Permits, planning, parcels, neighborhoods, and public works" },
+  "place:4819000": { name: "Dallas Open Data", url: "https://www.dallascityhall.com/departments/it-services/Pages/open-data.aspx", coverage: "Permits, development, planning, property, and capital projects" },
+  "place:4865000": { name: "City of San Antonio Open Data", url: "https://data.sanantonio.gov/", coverage: "Permits, planning, property, infrastructure, and capital projects" },
+  "place:1245000": { name: "City of Miami Open Data", url: "https://data.miamigov.com/", coverage: "Planning, permits, property, capital projects, and public works" },
+  "place:3915000": { name: "Cincinnati Open Data", url: "https://data.cincinnati-oh.gov/", coverage: "Permits, parcels, planning, infrastructure, and neighborhood programs" },
+  "place:3918000": { name: "Columbus Open Data", url: "https://opendata.columbus.gov/", coverage: "Permits, parcels, planning, capital improvements, and public works" },
+  "place:5363000": { name: "Seattle Open Data", url: "https://data.seattle.gov/", coverage: "Permits, planning, transportation, capital projects, and housing" },
+  "place:4752006": { name: "Nashville Open Data", url: "https://data.nashville.gov/", coverage: "Permits, parcels, planning, capital projects, and infrastructure" },
+  "place:0820000": { name: "Denver Open Data", url: "https://www.denvergov.org/opendata", coverage: "Permits, planning, property, capital projects, and public works" },
+  "place:3651000": { name: "NYC Open Data", url: "https://data.cityofnewyork.us/", coverage: "Permits, housing, planning, capital projects, and neighborhood services" },
 };

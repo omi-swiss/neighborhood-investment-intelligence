@@ -1,53 +1,14 @@
 import type { Metadata } from "next";
-import { SignalsWorkspace, type MarketProfile, type SignalEvent } from "../components/SignalsWorkspace";
+import { SignalsWorkspace, type SignalEvent } from "../components/SignalsWorkspace";
 import { PageShell } from "../components/PageShell";
-import datasetJson from "../data/areas.generated.json";
-import type { AreaDataset } from "../lib/types";
 import { phase8 } from "../lib/phase8";
 import { remainingGaps } from "../lib/remaining-gaps";
 import { curatedMarketEvents, marketContexts, marketMigrationContexts } from "../data/market-context";
 import { federalCommunityDevelopmentEvents } from "../data/signal-sources";
+import { coreMetadata } from "../data/core-metadata";
+import { marketProfiles } from "../data/market-profiles";
 
 export const metadata: Metadata = { title: "Signals & services" };
-
-const dataset = datasetJson as AreaDataset;
-
-function median(values: Array<number | null>): number | null {
-  const sorted = values.filter((value): value is number => value !== null).sort((a, b) => a - b);
-  if (!sorted.length) return null;
-  const middle = Math.floor(sorted.length / 2);
-  return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
-}
-
-const profiles: MarketProfile[] = dataset.markets
-  .filter((market) => market.enabled)
-  .map((market) => {
-    const areas = dataset.areas.filter((area) => area.marketId === market.id);
-    const population = areas.reduce((sum, area) => sum + (area.metrics.population ?? 0), 0);
-    const weightedGrowth = areas.reduce(
-      (sum, area) => sum + (area.metrics.population ?? 0) * (area.metrics.populationGrowth ?? 0),
-      0,
-    );
-    return {
-      marketId: market.id,
-      label: market.label,
-      city: market.city,
-      stateAbbr: market.stateAbbr,
-      areaCount: areas.length,
-      population,
-      populationGrowth: population ? weightedGrowth / population : null,
-      households: areas.reduce((sum, area) => sum + (area.metrics.householdCount ?? 0), 0),
-      medianAge: median(areas.map((area) => area.metrics.medianAge)),
-      medianHouseholdIncome: median(areas.map((area) => area.metrics.medianHouseholdIncome)),
-      medianHomeValue: median(areas.map((area) => area.metrics.medianHomeValue)),
-      medianRent: median(areas.map((area) => area.metrics.medianGrossRent)),
-      vacancyRate: median(areas.map((area) => area.metrics.vacancyRate)),
-      renterShare: median(areas.map((area) => area.metrics.renterShare)),
-      unemploymentRate: median(areas.map((area) => area.metrics.unemploymentRate)),
-      povertyRate: median(areas.map((area) => area.metrics.povertyRate)),
-      dataCoverage: median(areas.map((area) => area.metrics.metricCoverage)),
-    };
-  });
 
 const washingtonMarketId = "place:1150000";
 
@@ -141,8 +102,8 @@ export default function SignalsPage() {
       ]}
     >
       <SignalsWorkspace
-        generatedAt={dataset.generatedAt}
-        profiles={profiles}
+        generatedAt={coreMetadata.generatedAt}
+        profiles={marketProfiles}
         events={events}
         contexts={marketContexts}
         migrations={marketMigrationContexts}

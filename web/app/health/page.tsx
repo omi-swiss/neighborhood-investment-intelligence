@@ -1,15 +1,15 @@
 import type { Metadata } from "next";
 import { PageShell } from "../components/PageShell";
-import dataset from "../data/areas.generated.json";
+import { coreMetadata } from "../data/core-metadata";
 import { evidenceLayers } from "../lib/evidence";
 
 export const metadata: Metadata = { title: "Data health" };
 
 export default function DataHealthPage() {
   const supported = [
-    ["Area profiles", dataset.coverage.areaCount, "Healthy", "ACS 2023 and tract boundaries"],
-    ["Historical trends", dataset.coverage.areaCount, "Healthy", `${dataset.coverage.trendStartYear}-${dataset.coverage.scoreReferenceYear}`],
-    ["Map boundaries", dataset.coverage.areaCount, "Healthy", `${dataset.coverage.geographyVintage} geography vintage`],
+    ["Area profiles", coreMetadata.coverage.areaCount, "Healthy", "ACS 2024 and tract boundaries"],
+    ["Historical trends", coreMetadata.coverage.areaCount, "Healthy", `${coreMetadata.coverage.trendStartYear}-${coreMetadata.coverage.scoreReferenceYear}`],
+    ["Map boundaries", coreMetadata.coverage.areaCount, "Healthy", `${coreMetadata.coverage.geographyVintage} geography vintage`],
   ];
   const pending = [
     ["Property marketplace", "Ready for import", "Authorized manual or CSV records only"],
@@ -32,9 +32,9 @@ export default function DataHealthPage() {
       description="Current evidence availability, freshness, geography, and known gaps."
     >
       <div className="scope-strip">
-        <strong>Dataset generated {new Date(dataset.generatedAt).toLocaleDateString("en-US")}</strong>
-        <span>{dataset.coverage.areaCount} supported tracts</span>
-        <span>{dataset.methodology.source}</span>
+        <strong>Dataset generated {new Date(coreMetadata.generatedAt).toLocaleDateString("en-US")}</strong>
+        <span>{coreMetadata.coverage.areaCount} supported tracts</span>
+        <span>{coreMetadata.methodology.source}</span>
       </div>
       <div className="content-grid">
         <section className="detail-card wide-card">
