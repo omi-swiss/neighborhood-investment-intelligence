@@ -145,16 +145,22 @@ export function SignalsWorkspace({
             label="Median annual property tax"
             value={context ? formatCurrency(context.medianAnnualPropertyTax) : "Not yet verified"}
             note={context ? `ACS ${context.propertyTaxYear} five-year estimate for owner-occupied homes; not a parcel tax quote.` : "No city-level ACS tax profile has been verified for this market yet."}
+            sourceUrl={context?.propertyTaxSourceUrl}
+            sourceLabel="Open ACS source"
           />
           <ContextCard
             label="Political & governance context"
             value={context ? "Neutral policy context" : "Not yet verified"}
             note={context ? `2024 certified election context. ${context.politicalContext}` : "No certified-election and governance-context review has been stored for this market yet."}
+            sourceUrl={context?.politicalSourceUrl}
+            sourceLabel="Open election source"
           />
           <ContextCard
             label="Landlord operating environment"
             value={context ? "Primary-source review" : "Not yet verified"}
             note={context ? `${context.landlordEnvironment}. This is decision context, not a predictive score, and is excluded from the opportunity ranking.` : "No primary-law review has been stored for this market yet; it is not inferred from another jurisdiction."}
+            sourceUrl={context?.landlordSourceUrl}
+            sourceLabel="Open primary source"
           />
           {migration ? <article className="context-card migration-context">
             <span>Income carried by movers</span>
@@ -276,12 +282,13 @@ export function SignalsWorkspace({
         {context?.regulatoryProfile.length ? (
           <div className="table-wrap">
             <table className="comparison-table">
-              <thead><tr><th>Dimension</th><th>Summary</th><th>Reviewed</th></tr></thead>
+              <thead><tr><th>Dimension</th><th>Summary</th><th>Reviewed</th><th>Source</th></tr></thead>
               <tbody>{context.regulatoryProfile.map((policy) => (
                 <tr key={policy.id}>
                   <td><strong>{policy.dimension}</strong></td>
                   <td>{policy.summary}<br /><small>{policy.applicabilityNote}</small></td>
                   <td>{policy.lastVerifiedDate}</td>
+                  <td><a className="text-button" href={policy.sourceUrl} target="_blank" rel="noreferrer">{policy.citation}</a></td>
                 </tr>
               ))}</tbody>
             </table>
@@ -302,8 +309,25 @@ function ProfileMetric({ label, value, note }: { label: string; value: string; n
   return <div className="metric-tile"><span>{label}</span><strong>{value}</strong><small>{note}</small></div>;
 }
 
-function ContextCard({ label, value, note }: { label: string; value: string; note: string }) {
-  return <article className="context-card"><span>{label}</span><strong>{value}</strong><small>{note}</small></article>;
+function ContextCard({
+  label,
+  value,
+  note,
+  sourceUrl,
+  sourceLabel,
+}: {
+  label: string;
+  value: string;
+  note: string;
+  sourceUrl?: string;
+  sourceLabel?: string;
+}) {
+  return <article className="context-card">
+    <span>{label}</span>
+    <strong>{value}</strong>
+    <small>{note}</small>
+    {sourceUrl ? <a className="text-button" href={sourceUrl} target="_blank" rel="noreferrer">{sourceLabel ?? "Open source"}</a> : null}
+  </article>;
 }
 
 function formatCompactCurrency(value: number) {

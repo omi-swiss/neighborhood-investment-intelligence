@@ -11,6 +11,32 @@ import { marketProfiles } from "../data/market-profiles";
 export const metadata: Metadata = { title: "Signals & services" };
 
 const washingtonMarketId = "place:1150000";
+const maxDevelopmentSignalsPerMarket = 75;
+
+// Keep the Signals route compact while ensuring that a later-added market is
+// never excluded simply because an earlier market filled a global limit.
+function developmentSignalsByMarket() {
+  const counts = new Map<string, number>();
+  return phase8.developmentPins.filter((pin) => {
+    const marketId = pin.marketId ?? washingtonMarketId;
+    const count = counts.get(marketId) ?? 0;
+    if (count >= maxDevelopmentSignalsPerMarket) return false;
+    counts.set(marketId, count + 1);
+    return true;
+  });
+}
+
+function developmentStage(pin: typeof phase8.developmentPins[number]) {
+  if (pin.id.startsWith("nyc_dob_now_filings:")) return "DOB filing activity";
+  if (pin.id.startsWith("nyc_dob_permits:")) return "Permit issued";
+  return "Permit issued";
+}
+
+function developmentCategory(pin: typeof phase8.developmentPins[number]) {
+  if (pin.id.startsWith("nyc_dob_now_filings:")) return "Official DOB filing";
+  if (pin.id.startsWith("nyc_dob_permits:")) return "Issued DOB permit";
+  return "Development permit";
+}
 
 function classifyEvent(event: SignalEvent): SignalEvent {
   const text = `${event.category} ${event.title}`.toLowerCase();
@@ -47,13 +73,13 @@ function classifyEvent(event: SignalEvent): SignalEvent {
 const events: SignalEvent[] = [
   ...curatedMarketEvents,
   ...federalCommunityDevelopmentEvents,
-  ...phase8.developmentPins.slice(0, 75).map((pin) => ({
+  ...developmentSignalsByMarket().map((pin) => ({
     id: `permit:${pin.id}`,
     marketId: pin.marketId ?? washingtonMarketId,
-    category: "Development permit",
+    category: developmentCategory(pin),
     title: pin.address,
     organization: pin.ownerOrApplicant ?? "Applicant unavailable",
-    stage: "Permit issued",
+    stage: developmentStage(pin),
     date: pin.issueDate,
     sourceUrl: pin.sourceUrl,
     evidenceStatus: "verified-source" as const,

@@ -57,7 +57,7 @@ const irsMigrationSource =
   "https://www.irs.gov/statistics/soi-tax-stats-migration-data-2022-2023";
 const regulatoryReviewDate = "2026-07-30";
 
-export const marketContexts: MarketContext[] = [
+const baseMarketContexts: MarketContext[] = [
   {
     marketId: "place:1150000",
     medianAnnualPropertyTax: 4312,
@@ -569,6 +569,64 @@ export const marketContexts: MarketContext[] = [
     regulatoryProfile: [{ id: "nyc-tenant-rights", dimension: "Rent regulation and housing maintenance", summary: "NYC housing guidance describes tenant protections and distinguishes rent-regulated from market-rate housing.", applicabilityNote: "Rent-stabilization status and applicable city and state rules must be verified property by property.", lastVerifiedDate: regulatoryReviewDate, sourceUrl: "https://www.nyc.gov/site/hpd/services-and-information/tenants-rights-and-responsibilities.page", citation: "NYC Housing Preservation and Development" }],
   },
 ];
+
+const expandedRegulatoryReviewDate = "2026-08-17";
+const regulatoryItem = (id: string, dimension: string, summary: string, applicabilityNote: string, sourceUrl: string, citation: string): MarketRegulatoryItem => ({ id, dimension, summary, applicabilityNote, sourceUrl, citation, lastVerifiedDate: expandedRegulatoryReviewDate });
+
+// Each addition is a primary-source operating-diligence item. They are context,
+// not legal advice, and deliberately identify conditional rules rather than
+// treating a citywide program as universally applicable.
+const supplementalRegulatoryProfiles: Record<string, MarketRegulatoryItem[]> = {
+  "place:0455000": [
+    regulatoryItem("phoenix-rental-inspection", "Rental inspection authority", "Arizona law permits local inspection of residential rental property in specified health-and-safety circumstances.", "Confirm the inspection trigger, local code, and property facts before relying on this authority.", "https://www.phoenix.gov/nsdsite/Documents/ARLTA_Rev_Jul_2015.pdf", "City of Phoenix / Arizona Residential Landlord and Tenant Act"),
+    regulatoryItem("phoenix-voucher-inspections", "Voucher tenancy inspections", "Phoenix Housing Choice Voucher units must satisfy Housing Quality Standards before assistance and during assisted tenancy.", "Applies to voucher-assisted tenancies; it is not a general rental-license determination.", "https://www.phoenix.gov/administration/departments/housing/section-8-housing/section-8-inspections.html", "City of Phoenix Housing Department"),
+  ],
+  "place:4819000": [
+    regulatoryItem("dallas-rental-registration", "Rental registration and inspection", "Dallas requires registration for covered non-owner-occupied rentals and describes inspection and code-compliance requirements.", "Coverage and exemption rules vary by structure and program; verify the current City program for the parcel.", "https://dallascityhall.com/departments/codecompliance/Pages/Rental-Registration-archive.aspx", "City of Dallas Code Compliance"),
+    regulatoryItem("dallas-str", "Short-term rental registration", "Dallas requires short-term-rental owners to register and address hotel-occupancy-tax obligations.", "Applies only to stays of less than 30 days; verify current zoning and enforcement rules.", "https://dallascityhall.com/departments/budget/financialtransparency/Pages/Short-Term-Rentals.aspx", "City of Dallas"),
+  ],
+  "place:4865000": [
+    regulatoryItem("san-antonio-str", "Short-term rental permit", "San Antonio requires permits for short-term-rental units and publishes enforcement guidance.", "Applies to rentals under 30 consecutive days; confirm district, permit, and hotel-tax requirements.", "https://docsonline.sanantonio.gov/FileUploads/DSD/STRApplicationPermitsEnforcement.pdf", "City of San Antonio Development Services"),
+    regulatoryItem("san-antonio-str-safety", "Short-term rental safety conditions", "The City application identifies safety, contact, posting, and occupancy conditions for permitted short-term rentals.", "Applies only when operating a short-term rental; validate the current application and property conditions.", "https://docsonline.sanantonio.gov/FileUploads/DSD/STRAPPLICATION.pdf", "City of San Antonio Development Services"),
+  ],
+  "place:1245000": [
+    regulatoryItem("miami-use-permit", "Use and business permits", "Miami's business portal describes Certificate of Use and Business Tax Receipt processes for business activity in the city.", "Whether a rental operation requires these approvals depends on the use and facts; verify with Miami zoning and code staff.", "https://stgapps.miamigov.com/MiamiBiz/Account/Welcome", "City of Miami"),
+    regulatoryItem("miami-code-enforcement", "Property and use compliance", "Miami Code Enforcement directs businesses to obtain required use and tax approvals and administers property-code enforcement.", "This is not a blanket long-term rental licensing finding; confirm the specific use and parcel requirements.", "https://archive.miamigov.com/Codeenforcement/pages/faq/", "City of Miami Code Enforcement"),
+  ],
+  "place:3915000": [
+    regulatoryItem("cincinnati-rental-registration", "Rental registration", "Cincinnati requires residential rental units to be registered with Buildings and Inspections.", "Confirm registration status and any property-maintenance obligations for the specific rental.", "https://www.cincinnati-oh.gov/buildings/property-maintenance-code-enforcement/residential-rental-registration/", "City of Cincinnati Buildings and Inspections"),
+    regulatoryItem("cincinnati-str", "Short-term rental registration", "Cincinnati requires short-term-rental operators to register before operation.", "Applies to platform rentals under 30 days; confirm tax and operating requirements.", "https://www.cincinnati-oh.gov/finance/short-term-rental/", "City of Cincinnati Finance"),
+  ],
+  "place:3918000": [
+    regulatoryItem("columbus-rental-registry", "Residential rental registry", "Columbus enacted a Registry of Residential Rental Properties within its Housing Code.", "Verify effective dates, fees, and implementation rules before underwriting or acquisition.", "https://www.columbus.gov/files/sharedassets/city/v/3/city-council/documents/city-bulletins/2026/bulletin20260425.pdf", "City of Columbus"),
+    regulatoryItem("columbus-str", "Short-term rental permit", "Columbus administers short-term-rental permits through its License Section.", "Applies to short-term rentals; confirm host eligibility and local operating rules.", "https://www.columbus.gov/Business-Development/Get-a-Permit/Get-a-Short-Term-Rental-Permit", "City of Columbus"),
+  ],
+  "place:5363000": [
+    regulatoryItem("seattle-rrio", "Rental registration and inspection", "Seattle's RRIO requires rental housing registration and periodic inspection.", "Confirm exemptions, registration status, and the applicable inspection cycle.", "https://web5.seattle.gov/sdci/codes/codes-we-enforce-%28a-z%29/rental-registration%C2%A0and-inspection-code", "Seattle Department of Construction and Inspections"),
+    regulatoryItem("seattle-rrio-rules", "RRIO administrative rules", "Seattle publishes director rules implementing its Rental Registration and Inspection Ordinance.", "Rules can change; verify current code and the property-specific inspection requirement.", "https://web.seattle.gov/dpd/dirrulesviewer/List.aspx?leg=RRIO&t=Rental+Registration+and+Inspection+Ordinance+", "Seattle Department of Construction and Inspections"),
+  ],
+  "place:4752006": [
+    regulatoryItem("nashville-landlord-registration", "Landlord registration", "Metro requires covered residential rental owners or agents to register with Property Standards.", "Confirm coverage, renewal, ownership-change, and local-agent rules for the property.", "https://www.nashville.gov/departments/codes/property-standards/landlord-registration", "Metro Nashville Codes"),
+    regulatoryItem("nashville-str", "Short-term rental permit", "Metro administers short-term-rental permits with ownership, documentation, and tax-status requirements.", "Applies to short-term operations; confirm permit type, occupancy, and neighborhood restrictions.", "https://www.nashville.gov/departments/codes/short-term-rentals/apply-short-term-rental-property-permit", "Metro Nashville Codes"),
+  ],
+  "place:0820000": [
+    regulatoryItem("denver-rental-license-guide", "Residential rental license", "Denver's Residential Rental Program requires covered owners or managers to obtain a license to offer or operate rental property.", "Confirm property coverage, inspection requirements, and license status before acquisition.", "https://denvergov.org/files/assets/public/business-licensing/documents/residential-rental-program-checklist-guidebook.pdf", "City and County of Denver"),
+    regulatoryItem("denver-zoning-use", "Zoning use approval", "Denver explains that some business-license applications require zoning-use approval before licensing.", "Confirm the permitted use and approvals for the parcel; this is not a citywide conclusion.", "https://denvergov.org/Government/Agencies-Departments-Offices/Agencies-Departments-Offices-Directory/Business-Licensing/Resource-center/Frequently-Asked-Questions?lang_update=638689315352318600", "City and County of Denver"),
+  ],
+  "place:4805000": [
+    regulatoryItem("austin-repeat-offender", "Repeat-offender rental registration", "Austin requires qualifying rental properties with repeated serious code violations to register and undergo annual inspection.", "This is a conditional program, not universal rental registration; screen property violation history.", "https://www.austintexas.gov/development-services/repeat-offender-program", "City of Austin Development Services"),
+    regulatoryItem("austin-str", "Short-term rental license", "Austin requires a current license for short-term rentals and identifies tax-registration obligations.", "Applies to stays under 30 days; verify license type and current local rules.", "https://www.austintexas.gov/ar-xy/financial-services/hotel-and-rental-tax", "City of Austin"),
+  ],
+  "place:3651000": [
+    regulatoryItem("nyc-property-registration", "Annual property registration", "HPD requires annual registration for covered residential buildings and identifies consequences of failing to register.", "Confirm building type, owner-occupancy exception, registration status, and current fee obligations.", "https://www.nyc.gov/site/hpd/services-and-information/register-your-property.page", "NYC Housing Preservation and Development"),
+    regulatoryItem("nyc-rent-registration", "Rent-stabilization diligence", "HPD states that rent-regulated buildings require separate annual registration with New York State housing authorities.", "Rent stabilization and legal rent must be verified at the building and unit level.", "https://www.nyc.gov/site/hpd/services-and-information/other-housing-issues.page", "NYC Housing Preservation and Development"),
+  ],
+};
+
+export const marketContexts: MarketContext[] = baseMarketContexts.map((context) => ({
+  ...context,
+  regulatoryProfile: [...context.regulatoryProfile, ...(supplementalRegulatoryProfiles[context.marketId] ?? [])],
+}));
 
 // IRS publishes county-to-county flows, so city markets spanning multiple counties
 // are explicitly labeled as multi-county proxies rather than implied city totals.

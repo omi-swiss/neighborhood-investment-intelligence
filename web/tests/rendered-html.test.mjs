@@ -463,6 +463,9 @@ test("renders the market intelligence workspace with complete market context cov
   assert.match(html, /Verified project, grant, and urbanism pipeline/);
   assert.match(html, /verified records/i);
   assert.match(html, /Regulatory profile/);
+  assert.match(html, /Official DOB filing/);
+  assert.match(html, /Landlord operating environment/);
+  assert.match(html, /Open primary source/);
 
   const sourcesResponse = await request("/sources");
   assert.equal(sourcesResponse.status, 200);
