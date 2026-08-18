@@ -1,0 +1,14 @@
+interface:
+  display_name: ML Scorecard Operator
+  short_description: Build and monitor reliable ML scoring systems
+  default_prompt: Use $ml-scorecard-operator to design, validate, and monitor a production
+    ML score.
+  icon_small: assets/icon.svg
+  icon_large: assets/icon.svg
+policy:
+  products:
+  - chatgpt
+  - codex
+  - api
+  - atlas
+  allow_implicit_invocation: true

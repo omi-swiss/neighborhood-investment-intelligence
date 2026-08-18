@@ -123,6 +123,7 @@ The repository includes project-scoped Codex guidance in [`AGENTS.md`](AGENTS.md
 | `recover` | Safely resumes interrupted work without discarding user changes. |
 | `remember` | Records durable project decisions locally without storing credentials or private data. |
 | `imprint` | Captures a reusable, documented UI pattern after it has been established. |
+| `ml-scorecard-operator` | Defines, validates, calibrates, and monitors evidence-backed scoring systems without treating a score as an unsupported prediction. |
 
 The narrow agent profiles support data-quality review, public-data-source research, investment-evidence verification, and focused UI/map work. They do not replace human judgment: public-source claims, regulatory context, score definitions, and deployment changes are still reviewed and validated in the repository.
 
