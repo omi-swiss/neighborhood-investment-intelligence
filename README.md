@@ -113,7 +113,22 @@ GitHub Actions runs the same core pipeline and web checks for pushes and pull re
 
 ## Codex project workflows
 
-The repository includes project-scoped Codex guidance in `AGENTS.md`, reusable skills in `.agents/skills/`, and narrow custom agents in `.codex/agents/`. The UI workflow intentionally combines the existing semantic CSS and brand variables with selective Tailwind CSS 4 utilities; it does not require a wholesale styling rewrite. See `docs/ui-registry.md` before changing maps, layouts, controls, or responsive behavior.
+The repository includes project-scoped Codex guidance in [`AGENTS.md`](AGENTS.md), reusable skills in [`.agents/skills/`](.agents/skills/), and narrow custom agent profiles in [`.codex/agents/`](.codex/agents/). They keep automated work evidence-first and make the expected review steps visible to collaborators.
+
+| Workflow aid | Use in this project |
+| --- | --- |
+| `architect` | Plans cross-cutting changes to data, scoring, integrations, or product architecture before implementation. |
+| `nii-ui-system` | Applies the documented React, Tailwind, accessibility, map, and responsive UI conventions. |
+| `review` | Audits code and data releases for provenance, coverage, correctness, and investor-facing claims. |
+| `recover` | Safely resumes interrupted work without discarding user changes. |
+| `remember` | Records durable project decisions locally without storing credentials or private data. |
+| `imprint` | Captures a reusable, documented UI pattern after it has been established. |
+
+The narrow agent profiles support data-quality review, public-data-source research, investment-evidence verification, and focused UI/map work. They do not replace human judgment: public-source claims, regulatory context, score definitions, and deployment changes are still reviewed and validated in the repository.
+
+Some Codex capabilities are intentionally local rather than committed here: platform-provided skills, user-installed plugins, credentials, and personal automation settings live outside the repository. This keeps the project portable and prevents private account configuration or secrets from entering version control. Project-specific skills that are useful to collaborators are tracked under `.agents/skills/`.
+
+The UI workflow intentionally combines the existing semantic CSS and brand variables with selective Tailwind CSS 4 utilities; it does not require a wholesale styling rewrite. See [`docs/ui-registry.md`](docs/ui-registry.md) before changing maps, layouts, controls, or responsive behavior.
 
 ## Privacy and responsible use
 
