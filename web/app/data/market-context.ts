@@ -5,7 +5,6 @@ export type MarketContext = {
   propertyTaxSourceUrl: string;
   politicalContext: string;
   politicalSourceUrl: string;
-  landlordFriendlinessRank: number;
   landlordEnvironment: string;
   landlordSourceUrl: string;
   migration: MarketMigration;
@@ -66,7 +65,6 @@ export const marketContexts: MarketContext[] = [
     propertyTaxSourceUrl: censusPropertyTaxSource,
     politicalContext: "The District electorate strongly favored Democratic candidates in the latest certified federal election. Housing policy is locally determined by the mayor and council.",
     politicalSourceUrl: "https://electionresults.dcboe.org/election_results/2024-General-Election",
-    landlordFriendlinessRank: 9,
     landlordEnvironment: "Most regulated in the current market comparison",
     landlordSourceUrl: "https://code.dccouncil.gov/us/dc/council/code/titles/42/chapters/35",
     migration: {
@@ -109,7 +107,6 @@ export const marketContexts: MarketContext[] = [
     propertyTaxSourceUrl: censusPropertyTaxSource,
     politicalContext: "Baltimore City strongly favored Democratic candidates in the latest certified federal election; city and state housing policy both shape operations.",
     politicalSourceUrl: "https://elections.maryland.gov/elections/2024/election_data/index.html",
-    landlordFriendlinessRank: 7,
     landlordEnvironment: "Higher tenant-protection and licensing burden",
     landlordSourceUrl: "https://mgaleg.maryland.gov/mgawebsite/Laws/StatuteText?article=grp&section=8-101",
     migration: {
@@ -152,7 +149,6 @@ export const marketContexts: MarketContext[] = [
     propertyTaxSourceUrl: censusPropertyTaxSource,
     politicalContext: "Philadelphia strongly favored Democratic candidates in the latest certified federal election. City wage, transfer-tax, licensing, and tenant rules are material.",
     politicalSourceUrl: "https://vote.phila.gov/results/",
-    landlordFriendlinessRank: 6,
     landlordEnvironment: "Moderately high local operating requirements",
     landlordSourceUrl: "https://www.palegis.us/statutes/unconsolidated/law-information?sessYr=1951&sessInd=0&lawNum=0020",
     migration: {
@@ -195,7 +191,6 @@ export const marketContexts: MarketContext[] = [
     propertyTaxSourceUrl: censusPropertyTaxSource,
     politicalContext: "Detroit strongly favored Democratic candidates in the latest certified federal election; state government remains politically competitive.",
     politicalSourceUrl: "https://www.waynecounty.com/elected/clerk/election-results.aspx",
-    landlordFriendlinessRank: 4,
     landlordEnvironment: "Middle of the comparison; local compliance still matters",
     landlordSourceUrl: "https://www.legislature.mi.gov/Laws/MCL?objectName=mcl-chap554",
     migration: {
@@ -238,7 +233,6 @@ export const marketContexts: MarketContext[] = [
     propertyTaxSourceUrl: censusPropertyTaxSource,
     politicalContext: "Charlotte leans Democratic in recent urban voting while North Carolina remains a closely divided statewide electorate.",
     politicalSourceUrl: "https://er.ncsbe.gov/",
-    landlordFriendlinessRank: 3,
     landlordEnvironment: "Comparatively flexible statewide framework",
     landlordSourceUrl: "https://www.ncleg.gov/EnactedLegislation/Statutes/HTML/ByChapter/Chapter_42.html",
     migration: {
@@ -281,7 +275,6 @@ export const marketContexts: MarketContext[] = [
     propertyTaxSourceUrl: censusPropertyTaxSource,
     politicalContext: "Charleston's urban electorate differs from South Carolina's Republican-aligned statewide government; local land-use policy is especially consequential.",
     politicalSourceUrl: "https://www.scvotes.gov/election-results/",
-    landlordFriendlinessRank: 2,
     landlordEnvironment: "Comparatively flexible statewide framework",
     landlordSourceUrl: "https://www.scstatehouse.gov/code/t27c040.php",
     migration: {
@@ -324,7 +317,6 @@ export const marketContexts: MarketContext[] = [
     propertyTaxSourceUrl: censusPropertyTaxSource,
     politicalContext: "Boston strongly favored Democratic candidates in the latest certified election; state and local housing regulation is extensive.",
     politicalSourceUrl: "https://www.boston.gov/departments/elections/state-and-city-boston-election-results",
-    landlordFriendlinessRank: 8,
     landlordEnvironment: "High procedural and tenant-protection burden",
     landlordSourceUrl: "https://malegislature.gov/Laws/GeneralLaws/PartII/TitleI/Chapter186",
     migration: {
@@ -367,7 +359,6 @@ export const marketContexts: MarketContext[] = [
     propertyTaxSourceUrl: censusPropertyTaxSource,
     politicalContext: "Tampa is politically competitive at the urban/county level while Florida's statewide government is Republican-aligned.",
     politicalSourceUrl: "https://www.votehillsborough.gov/ELECTIONS/2024-General-Election",
-    landlordFriendlinessRank: 1,
     landlordEnvironment: "Most flexible in the current market comparison",
     landlordSourceUrl: "https://www.leg.state.fl.us/statutes/index.cfm?App_mode=Display_Statute&URL=0000-0099/0083/0083.html",
     migration: {
@@ -410,7 +401,6 @@ export const marketContexts: MarketContext[] = [
     propertyTaxSourceUrl: censusPropertyTaxSource,
     politicalContext: "Chicago strongly favored Democratic candidates in the latest certified election; city, county, and state policy all affect rental operations.",
     politicalSourceUrl: "https://chicagoelections.gov/elections/results",
-    landlordFriendlinessRank: 5,
     landlordEnvironment: "Meaningful city-specific tenant and building rules",
     landlordSourceUrl: "https://www.ilga.gov/legislation/ilcs/ilcs3.asp?ActID=2201&ChapterID=62",
     migration: {
@@ -446,56 +436,144 @@ export const marketContexts: MarketContext[] = [
       },
     ],
   },
+  {
+    marketId: "place:0455000",
+    medianAnnualPropertyTax: 1850,
+    propertyTaxYear: 2024,
+    propertyTaxSourceUrl: censusPropertyTaxSource,
+    politicalContext: "2024 certified Maricopa County results provide the electoral context; Arizona state and Phoenix municipal rules should be reviewed separately for a specific property.",
+    politicalSourceUrl: "https://azsos.gov/elections/election-information/2024-election-info",
+    landlordEnvironment: "Arizona's statutory residential-tenancy framework applies; Phoenix property-code and transaction-specific duties still require local review.",
+    landlordSourceUrl: "https://www.azleg.gov/arsDetail/?title=33",
+    migration: { geographyLabel: "Maricopa County", geographyType: "county proxy", dataYear: "2022–2023", inboundPeople: 150790, outboundPeople: 146581, netPeople: 4209, inboundAgi: 8138149000, outboundAgi: 6768059000, netAgi: 1370090000, sourceUrl: irsMigrationSource },
+    regulatoryProfile: [{ id: "phoenix-state-law", dimension: "Residential tenancy", summary: "Arizona Revised Statutes Title 33 contains the statewide residential landlord and tenant framework.", applicabilityNote: "Phoenix building, zoning, and property-maintenance requirements can add property-specific obligations.", lastVerifiedDate: regulatoryReviewDate, sourceUrl: "https://www.azleg.gov/arsDetail/?title=33", citation: "Arizona Legislature" }],
+  },
+  {
+    marketId: "place:4819000",
+    medianAnnualPropertyTax: 5075,
+    propertyTaxYear: 2024,
+    propertyTaxSourceUrl: censusPropertyTaxSource,
+    politicalContext: "2024 certified Dallas County results provide the electoral context; Texas law and Dallas municipal requirements operate at different levels.",
+    politicalSourceUrl: "https://www.sos.state.tx.us/elections/historical/elections-results-archive.shtml",
+    landlordEnvironment: "Texas's statutory residential-tenancy framework applies; municipal code, permits, and property standards can add local obligations.",
+    landlordSourceUrl: "https://statutes.capitol.texas.gov/Docs/PR/htm/PR.92.htm",
+    migration: { geographyLabel: "Covered city-proper counties (Collin, Dallas, Denton, and Rockwall)", geographyType: "multi-county proxy", dataYear: "2022–2023", inboundPeople: 306510, outboundPeople: 299679, netPeople: 6831, inboundAgi: 16075868000, outboundAgi: 15055913000, netAgi: 1019955000, sourceUrl: irsMigrationSource },
+    regulatoryProfile: [{ id: "dallas-state-law", dimension: "Residential tenancy", summary: "Texas Property Code Chapter 92 sets core statewide residential-tenancy rules.", applicabilityNote: "Confirm Dallas property-code, registration, and permitting requirements during diligence.", lastVerifiedDate: regulatoryReviewDate, sourceUrl: "https://statutes.capitol.texas.gov/Docs/PR/htm/PR.92.htm", citation: "Texas Constitution and Statutes" }],
+  },
+  {
+    marketId: "place:4865000",
+    medianAnnualPropertyTax: 4122,
+    propertyTaxYear: 2024,
+    propertyTaxSourceUrl: censusPropertyTaxSource,
+    politicalContext: "2024 certified Bexar County results provide the electoral context; Texas law and San Antonio municipal requirements operate at different levels.",
+    politicalSourceUrl: "https://www.sos.state.tx.us/elections/historical/elections-results-archive.shtml",
+    landlordEnvironment: "Texas's statutory residential-tenancy framework applies; municipal code, permits, and property standards can add local obligations.",
+    landlordSourceUrl: "https://statutes.capitol.texas.gov/Docs/PR/htm/PR.92.htm",
+    migration: { geographyLabel: "Bexar County", geographyType: "county proxy", dataYear: "2022–2023", inboundPeople: 83133, outboundPeople: 80328, netPeople: 2805, inboundAgi: 2929066000, outboundAgi: 3134031000, netAgi: -204965000, sourceUrl: irsMigrationSource },
+    regulatoryProfile: [{ id: "san-antonio-state-law", dimension: "Residential tenancy", summary: "Texas Property Code Chapter 92 sets core statewide residential-tenancy rules.", applicabilityNote: "Confirm San Antonio property-code, registration, and permitting requirements during diligence.", lastVerifiedDate: regulatoryReviewDate, sourceUrl: "https://statutes.capitol.texas.gov/Docs/PR/htm/PR.92.htm", citation: "Texas Constitution and Statutes" }],
+  },
+  {
+    marketId: "place:1245000",
+    medianAnnualPropertyTax: 4586,
+    propertyTaxYear: 2024,
+    propertyTaxSourceUrl: censusPropertyTaxSource,
+    politicalContext: "2024 certified Miami-Dade County results provide the electoral context; Florida law and local Miami-Dade and city rules should be evaluated separately.",
+    politicalSourceUrl: "https://dos.fl.gov/elections/data-statistics/elections-data/precinct-level-election-results/",
+    landlordEnvironment: "Florida's statutory residential-tenancy framework applies; Miami-Dade and City of Miami code, licensing, and property standards may add local obligations.",
+    landlordSourceUrl: "https://www.leg.state.fl.us/statutes/index.cfm?App_mode=Display_Statute&URL=0000-0099/0083/0083.html",
+    migration: { geographyLabel: "Miami-Dade County", geographyType: "county proxy", dataYear: "2022–2023", inboundPeople: 67097, outboundPeople: 107355, netPeople: -40258, inboundAgi: 5584864000, outboundAgi: 5100831000, netAgi: 484033000, sourceUrl: irsMigrationSource },
+    regulatoryProfile: [{ id: "miami-state-law", dimension: "Residential tenancy", summary: "Florida Statutes Chapter 83, Part II governs residential tenancies, deposits, notices, maintenance, and possession.", applicabilityNote: "Confirm Miami-Dade and City of Miami requirements for the property and use.", lastVerifiedDate: regulatoryReviewDate, sourceUrl: "https://www.leg.state.fl.us/statutes/index.cfm?App_mode=Display_Statute&URL=0000-0099/0083/0083.html", citation: "Florida Legislature" }],
+  },
+  {
+    marketId: "place:3915000",
+    medianAnnualPropertyTax: 3169,
+    propertyTaxYear: 2024,
+    propertyTaxSourceUrl: censusPropertyTaxSource,
+    politicalContext: "2024 certified Hamilton County results provide the electoral context; Ohio state law and Cincinnati housing requirements should be distinguished in underwriting.",
+    politicalSourceUrl: "https://data.ohiosos.gov/portal/election-dashboards",
+    landlordEnvironment: "Ohio's statutory residential-tenancy framework applies; city housing-code and inspection requirements may add local operating duties.",
+    landlordSourceUrl: "https://codes.ohio.gov/ohio-revised-code/chapter-5321",
+    migration: { geographyLabel: "Hamilton County", geographyType: "county proxy", dataYear: "2022–2023", inboundPeople: 27769, outboundPeople: 32512, netPeople: -4743, inboundAgi: 1237683000, outboundAgi: 1609325000, netAgi: -371642000, sourceUrl: irsMigrationSource },
+    regulatoryProfile: [{ id: "cincinnati-state-law", dimension: "Residential tenancy", summary: "Ohio Revised Code Chapter 5321 sets statewide landlord and tenant duties and remedies.", applicabilityNote: "Cincinnati housing-code and inspection rules remain property-specific diligence items.", lastVerifiedDate: regulatoryReviewDate, sourceUrl: "https://codes.ohio.gov/ohio-revised-code/chapter-5321", citation: "Ohio Laws and Administrative Rules" }],
+  },
+  {
+    marketId: "place:3918000",
+    medianAnnualPropertyTax: 3341,
+    propertyTaxYear: 2024,
+    propertyTaxSourceUrl: censusPropertyTaxSource,
+    politicalContext: "2024 certified Franklin County results provide the electoral context; Ohio state law and Columbus housing requirements should be distinguished in underwriting.",
+    politicalSourceUrl: "https://data.ohiosos.gov/portal/election-dashboards",
+    landlordEnvironment: "Ohio's statutory residential-tenancy framework applies; city housing-code and inspection requirements may add local operating duties.",
+    landlordSourceUrl: "https://codes.ohio.gov/ohio-revised-code/chapter-5321",
+    migration: { geographyLabel: "Covered city-proper counties (Delaware, Fairfield, and Franklin)", geographyType: "multi-county proxy", dataYear: "2022–2023", inboundPeople: 74262, outboundPeople: 78980, netPeople: -4718, inboundAgi: 3188976000, outboundAgi: 3682564000, netAgi: -493588000, sourceUrl: irsMigrationSource },
+    regulatoryProfile: [{ id: "columbus-state-law", dimension: "Residential tenancy", summary: "Ohio Revised Code Chapter 5321 sets statewide landlord and tenant duties and remedies.", applicabilityNote: "Columbus housing-code and inspection rules remain property-specific diligence items.", lastVerifiedDate: regulatoryReviewDate, sourceUrl: "https://codes.ohio.gov/ohio-revised-code/chapter-5321", citation: "Ohio Laws and Administrative Rules" }],
+  },
+  {
+    marketId: "place:5363000",
+    medianAnnualPropertyTax: 7337,
+    propertyTaxYear: 2024,
+    propertyTaxSourceUrl: censusPropertyTaxSource,
+    politicalContext: "2024 certified King County results provide the electoral context; Washington law and Seattle's municipal rental rules should be reviewed together.",
+    politicalSourceUrl: "https://results.vote.wa.gov/results/20241105/",
+    landlordEnvironment: "Washington's statutory residential-tenancy framework applies alongside Seattle's city-specific rental regulations.",
+    landlordSourceUrl: "https://www.seattle.gov/sdci/codes/codes-we-enforce-(a-z)/rental-agreement-regulation",
+    migration: { geographyLabel: "King County", geographyType: "county proxy", dataYear: "2022–2023", inboundPeople: 94148, outboundPeople: 109084, netPeople: -14936, inboundAgi: 6927090000, outboundAgi: 9122334000, netAgi: -2195244000, sourceUrl: irsMigrationSource },
+    regulatoryProfile: [{ id: "seattle-rental-regulation", dimension: "Local rental regulation", summary: "Seattle regulates rental agreements and landlord–tenant practices through city code and related rules.", applicabilityNote: "Requirements vary by tenancy, property type, and timing; verify current city and state rules for the transaction.", lastVerifiedDate: regulatoryReviewDate, sourceUrl: "https://www.seattle.gov/sdci/codes/codes-we-enforce-(a-z)/rental-agreement-regulation", citation: "Seattle Department of Construction and Inspections" }],
+  },
+  {
+    marketId: "place:4752006",
+    medianAnnualPropertyTax: 2472,
+    propertyTaxYear: 2024,
+    propertyTaxSourceUrl: censusPropertyTaxSource,
+    politicalContext: "2024 certified Davidson County results provide the electoral context; Tennessee state law and Metro Nashville requirements should be evaluated separately.",
+    politicalSourceUrl: "https://sos.tn.gov/elections/results",
+    landlordEnvironment: "Tennessee's residential-landlord framework applies; Metro code, zoning, and building requirements can add property-specific duties.",
+    landlordSourceUrl: "https://www.tn.gov/health/health-program-areas/healthy-homes/hh/landlord-tenant.html",
+    migration: { geographyLabel: "Davidson County", geographyType: "county proxy", dataYear: "2022–2023", inboundPeople: 44251, outboundPeople: 48296, netPeople: -4045, inboundAgi: 2619356000, outboundAgi: 2500899000, netAgi: 118457000, sourceUrl: irsMigrationSource },
+    regulatoryProfile: [{ id: "nashville-state-guidance", dimension: "Residential tenancy", summary: "Tennessee state health guidance directs landlords and tenants to the state's residential landlord and tenant framework.", applicabilityNote: "Confirm Metro Nashville code, zoning, and property-specific licensing or inspection duties.", lastVerifiedDate: regulatoryReviewDate, sourceUrl: "https://www.tn.gov/health/health-program-areas/healthy-homes/hh/landlord-tenant.html", citation: "Tennessee Department of Health" }],
+  },
+  {
+    marketId: "place:0820000",
+    medianAnnualPropertyTax: 2751,
+    propertyTaxYear: 2024,
+    propertyTaxSourceUrl: censusPropertyTaxSource,
+    politicalContext: "2024 certified Denver results provide the electoral context; Colorado state law and Denver's municipal rental rules should be reviewed together.",
+    politicalSourceUrl: "https://www.coloradosos.gov/pubs/elections/Results/Archives.html",
+    landlordEnvironment: "Colorado's statutory framework applies alongside Denver rental-licensing and local tenant-protection requirements.",
+    landlordSourceUrl: "https://www.denvergov.org/Government/Agencies-Departments-Offices/Agencies-Departments-Offices-Directory/Department-of-Excise-and-Licenses/Business-Licenses/Residential-Rental-Property",
+    migration: { geographyLabel: "City and County of Denver", geographyType: "city-county equivalent", dataYear: "2022–2023", inboundPeople: 63036, outboundPeople: 66538, netPeople: -3502, inboundAgi: 4034046000, outboundAgi: 4325599000, netAgi: -291553000, sourceUrl: irsMigrationSource },
+    regulatoryProfile: [{ id: "denver-rental-license", dimension: "Rental licensing", summary: "Denver requires a residential rental property license for covered rental properties.", applicabilityNote: "Confirm coverage, inspection, ownership, and current license status before underwriting.", lastVerifiedDate: regulatoryReviewDate, sourceUrl: "https://www.denvergov.org/Government/Agencies-Departments-Offices/Agencies-Departments-Offices-Directory/Department-of-Excise-and-Licenses/Business-Licenses/Residential-Rental-Property", citation: "City and County of Denver" }],
+  },
+  {
+    marketId: "place:4805000",
+    medianAnnualPropertyTax: 8024,
+    propertyTaxYear: 2024,
+    propertyTaxSourceUrl: censusPropertyTaxSource,
+    politicalContext: "2024 certified Travis County results provide the electoral context; Texas state law and Austin municipal requirements operate at different levels.",
+    politicalSourceUrl: "https://www.sos.state.tx.us/elections/historical/elections-results-archive.shtml",
+    landlordEnvironment: "Texas's statutory residential-tenancy framework applies; municipal code, permits, and property standards can add local obligations.",
+    landlordSourceUrl: "https://statutes.capitol.texas.gov/Docs/PR/htm/PR.92.htm",
+    migration: { geographyLabel: "Covered city-proper counties (Travis and Williamson)", geographyType: "multi-county proxy", dataYear: "2022–2023", inboundPeople: 139081, outboundPeople: 133113, netPeople: 5968, inboundAgi: 8824564000, outboundAgi: 8014260000, netAgi: 810304000, sourceUrl: irsMigrationSource },
+    regulatoryProfile: [{ id: "austin-state-law", dimension: "Residential tenancy", summary: "Texas Property Code Chapter 92 sets core statewide residential-tenancy rules.", applicabilityNote: "Confirm Austin property-code, registration, and permitting requirements during diligence.", lastVerifiedDate: regulatoryReviewDate, sourceUrl: "https://statutes.capitol.texas.gov/Docs/PR/htm/PR.92.htm", citation: "Texas Constitution and Statutes" }],
+  },
+  {
+    marketId: "place:3651000",
+    medianAnnualPropertyTax: 6547,
+    propertyTaxYear: 2024,
+    propertyTaxSourceUrl: censusPropertyTaxSource,
+    politicalContext: "2024 certified New York results provide the electoral context; New York State law and New York City housing rules both materially affect rental operations.",
+    politicalSourceUrl: "https://electionresults.ny.gov/",
+    landlordEnvironment: "New York's residential-tenancy framework applies alongside New York City rent-regulation and housing-maintenance requirements.",
+    landlordSourceUrl: "https://www.nyc.gov/site/hpd/services-and-information/tenants-rights-and-responsibilities.page",
+    migration: { geographyLabel: "NYC's five county-equivalents", geographyType: "multi-county proxy", dataYear: "2022–2023", inboundPeople: 317495, outboundPeople: 444289, netPeople: -126794, inboundAgi: 22699298000, outboundAgi: 30070054000, netAgi: -7370756000, sourceUrl: irsMigrationSource },
+    regulatoryProfile: [{ id: "nyc-tenant-rights", dimension: "Rent regulation and housing maintenance", summary: "NYC housing guidance describes tenant protections and distinguishes rent-regulated from market-rate housing.", applicabilityNote: "Rent-stabilization status and applicable city and state rules must be verified property by property.", lastVerifiedDate: regulatoryReviewDate, sourceUrl: "https://www.nyc.gov/site/hpd/services-and-information/tenants-rights-and-responsibilities.page", citation: "NYC Housing Preservation and Development" }],
+  },
 ];
 
 // IRS publishes county-to-county flows, so city markets spanning multiple counties
 // are explicitly labeled as multi-county proxies rather than implied city totals.
 export const marketMigrationContexts: MarketMigrationContext[] = [
   ...marketContexts.map(({ marketId, migration }) => ({ marketId, migration })),
-  {
-    marketId: "place:0455000",
-    migration: { geographyLabel: "Maricopa County", geographyType: "county proxy", dataYear: "2022–2023", inboundPeople: 150790, outboundPeople: 146581, netPeople: 4209, inboundAgi: 8138149000, outboundAgi: 6768059000, netAgi: 1370090000, sourceUrl: irsMigrationSource },
-  },
-  {
-    marketId: "place:4819000",
-    migration: { geographyLabel: "Covered city-proper counties (Collin, Dallas, Denton, and Rockwall)", geographyType: "multi-county proxy", dataYear: "2022–2023", inboundPeople: 306510, outboundPeople: 299679, netPeople: 6831, inboundAgi: 16075868000, outboundAgi: 15055913000, netAgi: 1019955000, sourceUrl: irsMigrationSource },
-  },
-  {
-    marketId: "place:4865000",
-    migration: { geographyLabel: "Bexar County", geographyType: "county proxy", dataYear: "2022–2023", inboundPeople: 83133, outboundPeople: 80328, netPeople: 2805, inboundAgi: 2929066000, outboundAgi: 3134031000, netAgi: -204965000, sourceUrl: irsMigrationSource },
-  },
-  {
-    marketId: "place:1245000",
-    migration: { geographyLabel: "Miami-Dade County", geographyType: "county proxy", dataYear: "2022–2023", inboundPeople: 67097, outboundPeople: 107355, netPeople: -40258, inboundAgi: 5584864000, outboundAgi: 5100831000, netAgi: 484033000, sourceUrl: irsMigrationSource },
-  },
-  {
-    marketId: "place:3915000",
-    migration: { geographyLabel: "Hamilton County", geographyType: "county proxy", dataYear: "2022–2023", inboundPeople: 27769, outboundPeople: 32512, netPeople: -4743, inboundAgi: 1237683000, outboundAgi: 1609325000, netAgi: -371642000, sourceUrl: irsMigrationSource },
-  },
-  {
-    marketId: "place:3918000",
-    migration: { geographyLabel: "Covered city-proper counties (Delaware, Fairfield, and Franklin)", geographyType: "multi-county proxy", dataYear: "2022–2023", inboundPeople: 74262, outboundPeople: 78980, netPeople: -4718, inboundAgi: 3188976000, outboundAgi: 3682564000, netAgi: -493588000, sourceUrl: irsMigrationSource },
-  },
-  {
-    marketId: "place:5363000",
-    migration: { geographyLabel: "King County", geographyType: "county proxy", dataYear: "2022–2023", inboundPeople: 94148, outboundPeople: 109084, netPeople: -14936, inboundAgi: 6927090000, outboundAgi: 9122334000, netAgi: -2195244000, sourceUrl: irsMigrationSource },
-  },
-  {
-    marketId: "place:4752006",
-    migration: { geographyLabel: "Davidson County", geographyType: "county proxy", dataYear: "2022–2023", inboundPeople: 44251, outboundPeople: 48296, netPeople: -4045, inboundAgi: 2619356000, outboundAgi: 2500899000, netAgi: 118457000, sourceUrl: irsMigrationSource },
-  },
-  {
-    marketId: "place:0820000",
-    migration: { geographyLabel: "City and County of Denver", geographyType: "city-county equivalent", dataYear: "2022–2023", inboundPeople: 63036, outboundPeople: 66538, netPeople: -3502, inboundAgi: 4034046000, outboundAgi: 4325599000, netAgi: -291553000, sourceUrl: irsMigrationSource },
-  },
-  {
-    marketId: "place:4805000",
-    migration: { geographyLabel: "Covered city-proper counties (Travis and Williamson)", geographyType: "multi-county proxy", dataYear: "2022–2023", inboundPeople: 139081, outboundPeople: 133113, netPeople: 5968, inboundAgi: 8824564000, outboundAgi: 8014260000, netAgi: 810304000, sourceUrl: irsMigrationSource },
-  },
-  {
-    marketId: "place:3651000",
-    migration: { geographyLabel: "NYC's five county-equivalents", geographyType: "multi-county proxy", dataYear: "2022–2023", inboundPeople: 317495, outboundPeople: 444289, netPeople: -126794, inboundAgi: 22699298000, outboundAgi: 30070054000, netAgi: -7370756000, sourceUrl: irsMigrationSource },
-  },
 ];
 
 export const curatedMarketEvents: CuratedMarketEvent[] = [

@@ -6,14 +6,16 @@ export async function GET(request: Request) {
   const marketId = search.get("marketId") ?? "";
   const requestedLimit = Number(search.get("limit") ?? "100");
   const limit = Math.min(5000, Math.max(1, Number.isFinite(requestedLimit) ? requestedLimit : 100));
-  const dcOnlyLayer = ["development", "environment", "flood"].includes(layer);
-  if (dcOnlyLayer && marketId !== "place:1150000") {
+  const dcOnlyLayer = ["environment", "flood"].includes(layer);
+  const developmentMarketId = (pin: typeof phase8.developmentPins[number]) => pin.marketId ?? "place:1150000";
+  const developmentAvailable = new Set(phase8.developmentPins.map(developmentMarketId));
+  if (layer === "development" && !developmentAvailable.has(marketId)) {
     return Response.json({
       generatedAt: phase8.generatedAt,
       layer,
       total: 0,
       items: [],
-      coverage: "This evidence layer currently supports Washington, DC only.",
+      coverage: "This evidence layer is not yet ingested for the selected market.",
     });
   }
 
@@ -21,8 +23,8 @@ export async function GET(request: Request) {
     return Response.json({
       generatedAt: phase8.generatedAt,
       layer,
-      total: phase8.developmentPins.length,
-      items: phase8.developmentPins.slice(0, limit),
+      total: phase8.developmentPins.filter((pin) => developmentMarketId(pin) === marketId).length,
+      items: phase8.developmentPins.filter((pin) => developmentMarketId(pin) === marketId).slice(0, limit),
       evidenceRule: phase8.evidenceRules.development,
     });
   }

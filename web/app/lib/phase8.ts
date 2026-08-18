@@ -1,7 +1,9 @@
 import payload from "../data/phase8.generated.json";
+import nycPayload from "../data/phase8.nyc.generated.json";
 
 export type DevelopmentPin = {
   id: string;
+  marketId?: string;
   address: string;
   ownerOrApplicant: string | null;
   permitType: string | null;
@@ -50,4 +52,10 @@ export type Phase8Payload = {
   evidenceRules: Record<"development" | "environment" | "flood" | "regulation", string>;
 };
 
-export const phase8 = payload as Phase8Payload;
+const basePayload = payload as Phase8Payload;
+const nycDevelopmentPayload = nycPayload as Phase8Payload;
+
+export const phase8: Phase8Payload = {
+  ...basePayload,
+  developmentPins: [...basePayload.developmentPins, ...nycDevelopmentPayload.developmentPins],
+};

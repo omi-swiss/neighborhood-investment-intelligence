@@ -50,6 +50,10 @@ class Settings(BaseSettings):
     nbi_year: int = 2025
     nbi_delimited_url: str = "https://www.fhwa.dot.gov/bridge/nbi/{year}/delimited/{state}{year_short}.txt"
     dc_building_permits_layer_url: str = "https://maps2.dcgis.dc.gov/dcgis/rest/services/FEEDS/DCRA/FeatureServer/{layer}"
+    nyc_dob_job_filings_url: str = "https://data.cityofnewyork.us/resource/ic3t-wcy2.json"
+    nyc_dob_now_filings_url: str = "https://data.cityofnewyork.us/resource/w9ak-ipjd.json"
+    nyc_dob_permits_url: str = "https://data.cityofnewyork.us/resource/rbx6-tga4.json"
+    nyc_dob_signal_start_date: date = date(2025, 1, 1)
     fema_nfhl_layer_url: str = "https://hazards.fema.gov/arcgis/rest/services/public/NFHL/MapServer/28"
     epa_frs_state_url: str = "https://ordsext.epa.gov/FLA/www3/state_files/state_single_{state}.zip"
     usaspending_award_search_url: str = "https://api.usaspending.gov/api/v2/search/spending_by_award/"

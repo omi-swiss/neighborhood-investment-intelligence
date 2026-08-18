@@ -19,6 +19,7 @@ from .config import Settings
 
 DC_COUNTY_GEOID = "11001"
 DC_BBOX = "-77.12,38.79,-76.90,39.01"
+NYC_PLACE_GEOID = "3651000"
 PERMIT_LAYERS = {2025: 17, 2026: 18}
 PERMIT_FIELDS = (
     "OBJECTID,DCRAINTERNALNUMBER,ISSUE_DATE,PERMIT_ID,PERMIT_TYPE_NAME,"
@@ -238,6 +239,110 @@ def _clean_number(value: object) -> float | None:
         return float(str(value).replace("$", "").replace(",", "").strip())
     except ValueError:
         return None
+
+
+def _first_value(record: dict[str, object], *names: str) -> str | None:
+    for name in names:
+        value = record.get(name)
+        if value is not None and str(value).strip():
+            return str(value).strip()
+    return None
+
+
+def _socrata_date(value: object) -> date | None:
+    if value in (None, ""):
+        return None
+    text = str(value).strip()
+    for pattern in ("%Y-%m-%dT%H:%M:%S.%f", "%m/%d/%Y", "%Y-%m-%d"):
+        try:
+            return datetime.strptime(text, pattern).date()
+        except ValueError:
+            continue
+    return None
+
+
+def _fetch_socrata_records(
+    url: str, start_date: date, date_field: str, timeout: int, max_records: int
+) -> tuple[list[dict[str, object]], bytes]:
+    records: list[dict[str, object]] = []
+    offset = 0
+    page_size = min(1_000, max_records)
+    while True:
+        with httpx.Client(timeout=max(timeout, 120), follow_redirects=True) as client:
+            response = client.get(url, params={"$limit": page_size, "$offset": offset, "$order": f"{date_field} DESC", "$where": f"{date_field} >= '{start_date.isoformat()}T00:00:00.000'"})
+            response.raise_for_status()
+            page = response.json()
+        if not isinstance(page, list):
+            raise ValueError("NYC Open Data response was not a JSON array.")
+        records.extend(item for item in page if isinstance(item, dict))
+        if len(page) < page_size or len(records) >= max_records:
+            break
+        offset += len(page)
+    return records, json.dumps(records, separators=(",", ":")).encode()
+
+
+def ingest_nyc_dob_development_signals(
+    conn: duckdb.DuckDBPyConnection, settings: Settings, *, start_date: date | None = None, max_records: int = 250
+) -> dict[str, int]:
+    """Load NYC DOB records as filings or issued-permit evidence, never completion evidence."""
+    since = start_date or settings.nyc_dob_signal_start_date
+    sources = {
+        "nyc_dob_job_filings": (settings.nyc_dob_job_filings_url, "Filing", "latest_action_date"),
+        "nyc_dob_now_filings": (settings.nyc_dob_now_filings_url, "DOB NOW filing", "current_status_date"),
+        "nyc_dob_permits": (settings.nyc_dob_permits_url, "Issued permit", "issued_date"),
+    }
+    counts: dict[str, int] = {}
+    for source_id, (url, evidence_kind, date_field) in sources.items():
+        run_id = _start_run(conn, source_id, {"start_date": since.isoformat(), "max_records": max_records, "url": url})
+        try:
+            records, raw = _fetch_socrata_records(url, since, date_field, settings.request_timeout_seconds, max_records)
+            rows: list[tuple[object, ...]] = []
+            for record in records:
+                object_id = _first_value(record, "job_s1_no", "job_filing_number", "job__", "permit__", "permit_number")
+                work_permit = _first_value(record, "work_permit")
+                if source_id == "nyc_dob_permits" and object_id and work_permit:
+                    object_id = f"{object_id}:{work_permit}"
+                if not object_id:
+                    continue
+                address = " ".join(part for part in [_first_value(record, "house__", "house_no"), _first_value(record, "street_name", "street_name_1")] if part) or None
+                applicant = " ".join(part for part in [_first_value(record, "applicant_s_first_name", "applicant_first_name"), _first_value(record, "applicant_s_last_name", "applicant_last_name")] if part) or None
+                owner = _first_value(record, "owner_s_business_name", "owner_s_last_name", "owner_name")
+                action_date = _socrata_date(record.get("issuance_date") or record.get("issued_date") or record.get("current_status_date") or record.get("latest_action_date") or record.get("filing_date"))
+                status = _first_value(record, "job_status_descrp", "job_status", "filing_status", "permit_status") or evidence_kind
+                rows.append((
+                    f"{source_id}:{object_id}", source_id, object_id,
+                    _first_value(record, "job__", "job_filing_number", "work_permit", "permit__", "permit_number"), NYC_PLACE_GEOID,
+                    action_date, _first_value(record, "job_type", "permit_type"), _first_value(record, "job_type", "work_type"),
+                    evidence_kind, status, address, _first_value(record, "job_description", "work_description", "description"),
+                    _first_value(record, "bbl", "bbl__"), _first_value(record, "zoning_dist1", "zoning_district"), applicant, owner,
+                    _clean_number(record.get("initial_cost") or record.get("estimated_job_costs") or record.get("total_est__fee")), _first_value(record, "gis_council_district", "community___board"),
+                    _first_value(record, "gis_nta_name"), _clean_number(record.get("gis_latitude") or record.get("latitude")),
+                    _clean_number(record.get("gis_longitude") or record.get("longitude")), url, since.isoformat(), None, run_id,
+                ))
+            # NYC feeds can repeat a filing while it moves through documents or status actions.
+            # The API request is newest-first, so retain the first source-object record deterministically.
+            unique_rows: dict[str, tuple[object, ...]] = {}
+            for row in rows:
+                unique_rows.setdefault(str(row[2]), row)
+            rows = list(unique_rows.values())
+            # DuckDB applies the table's secondary unique index after a transactional
+            # delete/insert batch; clear this source in its own committed statement first.
+            conn.execute("DELETE FROM standardized.development_permit WHERE source_id=?", [source_id])
+            conn.execute("BEGIN TRANSACTION")
+            if rows:
+                conn.executemany("INSERT INTO standardized.development_permit VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", rows)
+            digest = _persist_asset(conn, settings.raw_dir, source_id, run_id, url, raw, "json", "nyc-socrata-dob-v1", "NYC Open Data; retain Department of Buildings attribution")
+            _finish_run(conn, run_id, len(rows), digest)
+            conn.execute("COMMIT")
+            counts[source_id] = len(rows)
+        except Exception as error:
+            try:
+                conn.execute("ROLLBACK")
+            except duckdb.TransactionException:
+                pass
+            _fail_run(conn, run_id, error)
+            raise
+    return counts
 
 
 def ingest_dc_building_permits(
@@ -574,8 +679,8 @@ def build_phase8_products(conn: duckdb.DuckDBPyConnection) -> None:
               ELSE 'OTHER'
             END AS signal_tier
           FROM standardized.development_permit
-          WHERE latitude BETWEEN 38.79 AND 39.01
-            AND longitude BETWEEN -77.12 AND -76.90
+          WHERE latitude BETWEEN -90 AND 90
+            AND longitude BETWEEN -180 AND 180
         )
         SELECT * EXCLUDE (permit_evidence),
           'PERMIT_IS_AUTHORIZED_WORK_NOT_PROJECT_COST_OR_COMPLETION' AS interpretation_note
@@ -648,7 +753,7 @@ def export_phase8_web_payload(
     """Publish a compact, provenance-bearing Phase 8 payload for the website."""
     development = conn.execute(
         """
-        SELECT permit_record_id, coalesce(full_address, 'Location unavailable'),
+        SELECT permit_record_id, source_id, jurisdiction_geoid, coalesce(full_address, 'Location unavailable'),
           coalesce(owner_name, applicant_name), coalesce(permit_subtype, permit_type),
           issue_date, latitude, longitude, signal_tier, source_url
         FROM analytics.development_permit_map_pin
@@ -684,7 +789,7 @@ def export_phase8_web_payload(
     payload = {
         "generatedAt": datetime.now(timezone.utc).isoformat(),
         "coverage": {
-            "label": "Washington, DC pilot",
+            "label": "Washington, DC and New York City where official connector data is ingested",
             "developmentPermitCount": len(development),
             "environmentalSiteCount": len(environmental),
             "floodTractCount": len(flood),
@@ -693,15 +798,16 @@ def export_phase8_web_payload(
         "developmentPins": [
             {
                 "id": row[0],
-                "address": row[1],
-                "ownerOrApplicant": row[2],
-                "permitType": row[3],
-                "issueDate": row[4].isoformat() if row[4] else None,
-                "latitude": row[5],
-                "longitude": row[6],
-                "signalTier": row[7],
-                "sourceUrl": row[8],
-                "interpretation": "Permit evidence; project scope, financing, cost, and completion require review.",
+                "marketId": "place:3651000" if row[2] == NYC_PLACE_GEOID else "place:1150000",
+                "address": row[3],
+                "ownerOrApplicant": row[4],
+                "permitType": row[5],
+                "issueDate": row[6].isoformat() if row[6] else None,
+                "latitude": row[7],
+                "longitude": row[8],
+                "signalTier": row[9],
+                "sourceUrl": row[10],
+                "interpretation": "Permit and filing evidence; project scope, financing, cost, and completion require review.",
             }
             for row in development
         ],

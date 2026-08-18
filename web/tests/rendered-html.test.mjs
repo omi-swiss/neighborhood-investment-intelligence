@@ -455,7 +455,7 @@ test("filters exact city-proper market identifiers without metro ambiguity", asy
   assert.ok(payload.items.every((item) => item.tractLabel.startsWith("Census Tract ")));
 });
 
-test("renders the market intelligence workspace with honest partial coverage", async () => {
+test("renders the market intelligence workspace with complete market context coverage", async () => {
   const response = await request("/signals");
   assert.equal(response.status, 200);
   const html = await response.text();
@@ -463,6 +463,12 @@ test("renders the market intelligence workspace with honest partial coverage", a
   assert.match(html, /Verified project, grant, and urbanism pipeline/);
   assert.match(html, /verified records/i);
   assert.match(html, /Regulatory profile/);
+
+  const sourcesResponse = await request("/sources");
+  assert.equal(sourcesResponse.status, 200);
+  const sourcesHtml = await sourcesResponse.text();
+  assert.match(sourcesHtml, /City-context references/);
+  assert.doesNotMatch(sourcesHtml, /Not yet verified/);
 });
 
 test("validates listing links without scraping or inventing property facts", async () => {

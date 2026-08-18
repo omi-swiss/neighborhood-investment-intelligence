@@ -254,7 +254,7 @@ export function OpportunityMap({ areas, contextAreas, marketSummaries, mapTotal,
   const [zoomBox, setZoomBox] = useState<{ start: Point; end: Point } | null>(null);
   const [hoveredArea, setHoveredArea] = useState<{ area: AreaRecord; point: Point } | null>(null);
   const [activeAreaId, setActiveAreaId] = useState<string | null>(selectedId);
-  const evidenceAvailable = focusCity === "place:1150000";
+  const evidenceAvailable = focusCity === "place:1150000" || focusCity === "place:3651000";
   const svgRef = useRef<SVGSVGElement>(null);
   const mapContentRef = useRef<SVGGElement>(null);
   const dragState = useRef<DragState | null>(null);

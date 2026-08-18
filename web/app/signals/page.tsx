@@ -49,7 +49,7 @@ const events: SignalEvent[] = [
   ...federalCommunityDevelopmentEvents,
   ...phase8.developmentPins.slice(0, 75).map((pin) => ({
     id: `permit:${pin.id}`,
-    marketId: washingtonMarketId,
+    marketId: pin.marketId ?? washingtonMarketId,
     category: "Development permit",
     title: pin.address,
     organization: pin.ownerOrApplicant ?? "Applicant unavailable",

@@ -61,6 +61,7 @@ from .phase8_population import (
     export_phase8,
     export_phase8_web_payload,
     ingest_dc_building_permits,
+    ingest_nyc_dob_development_signals,
     ingest_epa_frs,
     ingest_fema_flood_dc,
 )
@@ -911,6 +912,23 @@ def ingest_dc_permits_command(
         "Loaded DC building permits: "
         + ", ".join(f"{current_year}={count}" for current_year, count in counts.items())
     )
+
+
+@app.command("ingest-nyc-development")
+def ingest_nyc_development_command(
+    start_date: str | None = typer.Option(None, "--start-date"),
+    limit: int = typer.Option(250, "--limit", min=1, max=1_000),
+) -> None:
+    """Ingest NYC DOB filings and issued-permit evidence for development discovery."""
+    settings, conn = database()
+    try:
+        parsed_start_date = date.fromisoformat(start_date) if start_date else None
+    except ValueError as error:
+        conn.close()
+        raise typer.BadParameter("Use YYYY-MM-DD for --start-date.") from error
+    counts = ingest_nyc_dob_development_signals(conn, settings, start_date=parsed_start_date, max_records=limit)
+    conn.close()
+    typer.echo("Loaded NYC DOB development evidence: " + ", ".join(f"{key}={value}" for key, value in counts.items()))
 
 
 @app.command("ingest-fema-flood-dc")

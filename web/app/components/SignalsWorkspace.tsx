@@ -153,8 +153,8 @@ export function SignalsWorkspace({
           />
           <ContextCard
             label="Landlord operating environment"
-            value={context ? `Reference ordering ${context.landlordFriendlinessRank}` : "Not yet verified"}
-            note={context ? `${context.landlordEnvironment}. A descriptive, reviewed comparison of statewide procedure and city operating requirements; it is not a predictive score and is excluded from the opportunity ranking.` : "No primary-law review has been stored for this market yet; it is not inferred from another jurisdiction."}
+            value={context ? "Primary-source review" : "Not yet verified"}
+            note={context ? `${context.landlordEnvironment}. This is decision context, not a predictive score, and is excluded from the opportunity ranking.` : "No primary-law review has been stored for this market yet; it is not inferred from another jurisdiction."}
           />
           {migration ? <article className="context-card migration-context">
             <span>Income carried by movers</span>
