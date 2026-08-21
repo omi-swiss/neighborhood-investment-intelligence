@@ -40,6 +40,23 @@ export function sites() {
           recursive: true,
         });
       }
+
+      // Keep the large, versioned market artifacts outside the Worker bundle.
+      // They are served as static assets and fetched only by routes that need
+      // tract-level evidence or display geometry.
+      await rm(resolve(root, "dist", "data"), { recursive: true, force: true });
+      const marketDataDirectory = resolve(root, "dist", "client", "data");
+      await mkdir(marketDataDirectory, { recursive: true });
+      await Promise.all([
+        cp(
+          resolve(root, "app", "data", "areas.generated.json"),
+          resolve(marketDataDirectory, "areas.generated.json"),
+        ),
+        cp(
+          resolve(root, "app", "data", "display-geography.generated.json"),
+          resolve(marketDataDirectory, "display-geography.generated.json"),
+        ),
+      ]);
     },
   };
 }

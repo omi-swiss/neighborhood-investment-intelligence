@@ -1,140 +1,62 @@
 # Neighborhood Investment Intelligence
 
-An evidence-first real-estate market intelligence platform that combines a reproducible public-data pipeline with an investor-facing web application.
+Phase 0 and Phase 1 foundation for reproducible U.S. census-tract fundamentals. This repository intentionally does **not** rank tracts with a universal "best" score. It creates traceable observations, quality flags, and a tract-year profile that later strategy models can consume.
 
-[View the live application](https://neighborhood-investment-intelligence.omi123.chatgpt.site/)
+## What is implemented
 
-![Neighborhood Investment Intelligence interface](web/public/og.png)
+* 2019-2024 ACS 5-year tract ingestion (configurable; six vintages by default)
+* Raw, checksum-addressed response preservation and ingestion lineage
+* Long-form estimates and MOEs, derived tract-year profile, inflation adjustment, and trends
+* Census tract, place, and CBSA reference geography from TIGER/Line, with lineage-preserving tract context assignments
+* Explicit profile completeness and ACS-MOE reliability findings, duplicate prevention, source metadata, and a Parquet export
+* Phase 2 LODES bulk-download and tract aggregation for resident workers, workplace jobs, and commuting flows
+* BLS QCEW county-level employment, establishment, and wage indicators, explicitly retained at county resolution
+* A local, read-only as-of dashboard that distinguishes observed data from future nowcasts/forecasts
+* Local DuckDB execution plus PostGIS production migration
 
-## What it demonstrates
+## Web application
 
-- A map-based opportunity screener covering 2,072 census tracts across nine initial city markets.
-- Comparable value, momentum, demographic, housing, and risk indicators with visible source years and confidence.
-- An all-market Property Universe with public parcel records, recent-sale context, prospecting lists, and a path to licensed listing feeds.
-- Property underwriting with quick and detailed analysis, sensitivity testing, NOI, DSCR, NPV, and return metrics.
-- City signals for migration, regulation, taxation, public investment, and evidence-backed private development.
-- Watchlists, alerts, saved analyses, source lineage, and data-health views.
+The Tableau/Power BI exports and local diagnostic dashboard are no longer the planned primary
+product surface. The production web-product requirements and architecture are indexed in
+[Phase 0 product and architecture](docs/product/phase0/README.md). The first deployable Opportunity
+Screener slice and its remaining expansion boundary are documented in
+[Phase 1 implementation status](docs/product/phase1.md).
 
-## Architecture
+## Quick start
 
-```mermaid
-flowchart LR
-    A["Public data and primary-source evidence"] --> B["Python ingestion and standardization"]
-    B --> C["DuckDB analytics and PostGIS-ready schema"]
-    C --> D["Versioned web artifacts"]
-    D --> E["React + TypeScript investor application"]
-    E --> F["Screening, underwriting, signals, and prospecting"]
-```
-
-| Layer | Technologies |
-| --- | --- |
-| Data engineering | Python, pandas, PyArrow, DuckDB, HTTPX, Pydantic |
-| Geospatial | GeoPandas, Shapely, TIGER/Line geometries, PostGIS-ready migrations |
-| Web application | React, TypeScript, Vinext/Vite, Tailwind CSS |
-| Persistence | Drizzle ORM, Cloudflare D1/Workers-compatible APIs |
-| Quality | pytest, Node test runner, ESLint, GitHub Actions |
-
-## Repository guide
-
-| Path | Purpose |
-| --- | --- |
-| `src/neighborhood_intelligence/` | Ingestion, normalization, scoring, forecasting, and export logic |
-| `config/` | Source registry, metrics, geographies, and scoring configuration |
-| `migrations/` | Analytical and application database schemas |
-| `reference/` | Curated public reference records and evidence inputs |
-| `tests/` | Pipeline and data-contract tests |
-| `web/` | Investor-facing web application, APIs, and generated public artifacts |
-| `docs/` | Architecture, methods, data contracts, operations, and phase notes |
-
-## Run the web application
-
-Requirements: Node.js 22.13 or newer and pnpm 10.
+Requires Python 3.11+ and `uv` (recommended).
 
 ```powershell
-cd web
-corepack enable
-pnpm install --frozen-lockfile
-pnpm run dev
+cd 'C:\Users\omarh\Documents\New project\neighborhood-intelligence'
+uv sync --all-groups --extra geospatial
+uv run nii init
+uv run nii register-sources
+uv run nii ingest-acs --state 11
+uv run nii ingest-lodes --state dc --year 2023
+uv run nii build-profile
+uv run nii export-profile
+uv run pytest
 ```
 
-The checked-in public artifacts support local exploration without rebuilding the warehouse. Persistent watchlists, saves, and alerts require the configured application database in a hosted environment.
+`--state 11` is a small reproducibility smoke run for the District of Columbia. Omit `--state` to run all configured states. Census currently requires a `CENSUS_API_KEY` for data queries; keep it only in the ignored local `.env` or a production secret manager. Results are in `data/warehouse/nii.duckdb` and `data/published/tract_year_profile.parquet`.
 
-## Run the data pipeline
-
-Requirements: Python 3.11 or 3.12.
+Load tract geometry plus official Census-place and CBSA context after the data-only smoke run. The command requires the declared `geospatial` extra:
 
 ```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install -e ".[geospatial]"
-Copy-Item .env.example .env
-nii init
-nii register-sources
-nii ingest-acs --state 11
-nii build-profile
-python -m pytest
+uv run nii ingest-geography --state 11
 ```
 
-Census and FBI API keys are optional for some public endpoints but improve reliability and request limits. Put them only in a local `.env` file; never commit credentials.
+## Guardrails
 
-## Data sources
+ACS 5-year releases overlap; the profile labels each source window and does not present consecutive vintages as independent annual observations. 2019-2023 uses 2010 tract geography, while newer releases use 2020 geography; therefore cross-vintage trend output is deliberately flagged `GEOGRAPHY_NORMALIZATION_REQUIRED` until an approved relationship/crosswalk table is loaded.
 
-The platform is designed around public or publicly documented sources:
+Do not commit `data/raw`, source extracts, API keys, or licensed data. Read [architecture.md](docs/architecture.md), [data_sources.md](docs/data_sources.md), [geography.md](docs/geography.md), and [operations.md](docs/operations.md) before deploying.
 
-- U.S. Census Bureau ACS, TIGER/Line, and Building Permits Survey
-- Census LEHD Origin-Destination Employment Statistics
-- U.S. Bureau of Labor Statistics QCEW
-- Federal Housing Finance Agency house-price indexes
-- FBI Crime Data Explorer
-- Federal Highway Administration National Bridge Inventory
-- SEC filings, company investor-relations releases, and state/local economic-development or planning notices
-- Official city and county parcel, assessment, deed, and sale APIs where available
+Phase 2 design, coverage caveats, and the no-key LODES workflow are in [phase2_jobs.md](docs/phase2_jobs.md).
+Phase 3's observed FHFA tract price-index foundation and market-data safeguards are in [phase3_housing.md](docs/phase3_housing.md).
+Phase 4's resolution-safe FBI Crime Data Explorer baseline is in [phase4_public_safety.md](docs/phase4_public_safety.md).
+Phase 5's county-native Census construction authorization layer is in [phase5_construction.md](docs/phase5_construction.md).
 
-Every displayed metric should carry a source, observation period, geography, and confidence or completeness signal. See [`docs/`](docs/) and the in-product Sources and Methodology pages for details.
+## Explore locally
 
-## Methodology and limitations
-
-- Census estimates have different release years and overlapping survey windows; the interface surfaces vintage rather than implying all metrics are contemporaneous.
-- Scores are comparative screening tools, not appraisals, forecasts of guaranteed performance, or investment advice.
-- Public parcel records describe the property universe; they are not active listings. A comprehensive active-listing marketplace requires a licensed feed.
-- Project announcements remain `ANNOUNCED` until primary evidence supports a status change.
-- City comparisons use consistent definitions where possible, but local parcel and regulatory fields vary by jurisdiction.
-
-## Quality checks
-
-```powershell
-python -m pytest
-cd web
-pnpm run build
-node --test tests/rendered-html.test.mjs
-```
-
-GitHub Actions runs the same core pipeline and web checks for pushes and pull requests.
-
-## Codex project workflows
-
-The repository includes project-scoped Codex guidance in [`AGENTS.md`](AGENTS.md), reusable skills in [`.agents/skills/`](.agents/skills/), and narrow custom agent profiles in [`.codex/agents/`](.codex/agents/). They keep automated work evidence-first and make the expected review steps visible to collaborators.
-
-| Workflow aid | Use in this project |
-| --- | --- |
-| `architect` | Plans cross-cutting changes to data, scoring, integrations, or product architecture before implementation. |
-| `nii-ui-system` | Applies the documented React, Tailwind, accessibility, map, and responsive UI conventions. |
-| `review` | Audits code and data releases for provenance, coverage, correctness, and investor-facing claims. |
-| `recover` | Safely resumes interrupted work without discarding user changes. |
-| `remember` | Records durable project decisions locally without storing credentials or private data. |
-| `imprint` | Captures a reusable, documented UI pattern after it has been established. |
-| `ml-scorecard-operator` | Defines, validates, calibrates, and monitors evidence-backed scoring systems without treating a score as an unsupported prediction. |
-
-The narrow agent profiles support data-quality review, public-data-source research, investment-evidence verification, and focused UI/map work. They do not replace human judgment: public-source claims, regulatory context, score definitions, and deployment changes are still reviewed and validated in the repository.
-
-Some Codex capabilities are intentionally local rather than committed here: platform-provided skills, user-installed plugins, credentials, and personal automation settings live outside the repository. This keeps the project portable and prevents private account configuration or secrets from entering version control. Project-specific skills that are useful to collaborators are tracked under `.agents/skills/`.
-
-The UI workflow intentionally combines the existing semantic CSS and brand variables with selective Tailwind CSS 4 utilities; it does not require a wholesale styling rewrite. See [`docs/ui-registry.md`](docs/ui-registry.md) before changing maps, layouts, controls, or responsive behavior.
-
-## Privacy and responsible use
-
-The project emphasizes aggregate market analysis and public property records. Do not add protected personal data, private contact details, authentication secrets, or data whose license prohibits redistribution. Users remain responsible for fair-housing, privacy, solicitation, and data-provider requirements in their jurisdiction.
-
-## License
-
-This repository is source-available for portfolio and evaluation purposes. See [`LICENSE`](LICENSE). Third-party data remains subject to the terms of its originating source.
+After ingestion, run `uv run nii serve-dashboard` and open `http://127.0.0.1:8787`. Enter a tract (11 digits) or county (5 digits) GEOID and an as-of date. The dashboard selects the latest value that was available by that date and keeps the source geographic resolution visible; it never substitutes county QCEW values for tract values.

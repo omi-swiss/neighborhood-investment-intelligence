@@ -308,11 +308,14 @@ export function OpportunityMap({ areas, contextAreas, marketSummaries, mapTotal,
   );
 
   useEffect(() => {
-    if (selectedId && areas.some((area) => area.id === selectedId)) {
-      setActiveAreaId(selectedId);
-    } else if (!activeAreaId || !areas.some((area) => area.id === activeAreaId)) {
-      setActiveAreaId(areas[0]?.id ?? null);
-    }
+    const frame = requestAnimationFrame(() => {
+      if (selectedId && areas.some((area) => area.id === selectedId)) {
+        setActiveAreaId(selectedId);
+      } else if (!activeAreaId || !areas.some((area) => area.id === activeAreaId)) {
+        setActiveAreaId(areas[0]?.id ?? null);
+      }
+    });
+    return () => cancelAnimationFrame(frame);
   }, [activeAreaId, areas, selectedId]);
 
   function moveActiveArea(currentId: string, direction: 1 | -1) {
@@ -356,12 +359,18 @@ export function OpportunityMap({ areas, contextAreas, marketSummaries, mapTotal,
     [bounds, orientationLabels],
   );
 
-  useEffect(() => { setBounds(baseBounds); setZoomBox(null); }, [baseBounds]);
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      setBounds(baseBounds);
+      setZoomBox(null);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [baseBounds]);
 
   useEffect(() => {
     if (layer === "opportunity") return;
     let cancelled = false;
-    setSignalLoading(true);
+    const frame = requestAnimationFrame(() => setSignalLoading(true));
     fetch(`/api/signals?layer=${layer}&marketId=${encodeURIComponent(focusCity)}&limit=500`)
       .then((response) => response.json())
       .then((payload: { total: number; items: DevelopmentPin[] | EnvironmentalPin[] | Array<{ tractGeoid: string; sfhaAreaShare: number }> }) => {
@@ -379,8 +388,17 @@ export function OpportunityMap({ areas, contextAreas, marketSummaries, mapTotal,
         setSignalLoading(false);
       })
       .catch(() => { if (!cancelled) setSignalLoading(false); });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(frame);
+    };
   }, [focusCity, layer]);
+
+  function selectLayer(nextLayer: MapLayer) {
+    setLayer(nextLayer);
+    setSelectedSignal(null);
+    setSignalLoading(nextLayer !== "opportunity");
+  }
 
   function eventPoint(event: { clientX: number; clientY: number }): Point | null {
     const element = svgRef.current;
@@ -483,7 +501,7 @@ export function OpportunityMap({ areas, contextAreas, marketSummaries, mapTotal,
         </div>
         <span className="map-control-divider" aria-hidden="true" />
         {([ ["opportunity", "Opportunity"], ["development", "Development"], ["flood", "Flood"], ["environment", "EPA facilities"] ] as const).map(([value, label]) => (
-          <button aria-describedby={!evidenceAvailable && value !== "opportunity" ? "map-evidence-coverage" : undefined} className={layer === value ? "active" : ""} disabled={!evidenceAvailable && value !== "opportunity"} key={value} onClick={() => { setLayer(value); setSelectedSignal(null); }}>{label}</button>
+          <button aria-describedby={!evidenceAvailable && value !== "opportunity" ? "map-evidence-coverage" : undefined} className={layer === value ? "active" : ""} disabled={!evidenceAvailable && value !== "opportunity"} key={value} onClick={() => selectLayer(value)}>{label}</button>
         ))}
       </div>
       <div className="map-note">

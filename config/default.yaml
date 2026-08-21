@@ -4,10 +4,7 @@ raw_dir: data/raw
 published_dir: data/published
 acs_years: [2019, 2020, 2021, 2022, 2023, 2024]
 states: ["01", "02", "04", "05", "06", "08", "09", "10", "11", "12", "13", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31", "32", "33", "34", "35", "36", "37", "38", "39", "40", "41", "42", "44", "45", "46", "47", "48", "49", "50", "51", "53", "54", "55", "56"]
-opportunity_cohort_states: ["04", "08", "11", "12", "17", "24", "25", "26", "36", "37", "39", "42", "45", "47", "48", "53"]
-opportunity_cohort_city_geoids: ["1150000", "2404000", "4260000", "2622000", "3712000", "4513330", "2507000", "1271000", "1714000", "4805000", "0455000", "4819000", "4865000", "1245000", "3915000", "3918000", "5363000", "4752006", "0820000", "3651000"]
 reference_geography_vintage: "2020"
-display_geography_vintage: "2025"
 inflation_reference_year: 2024
 acs_api_base: https://api.census.gov/data
 lodes_base: https://lehd.ces.census.gov/data/lodes
@@ -26,10 +23,6 @@ bps_years: [2020, 2021, 2022, 2023, 2024, 2025]
 nbi_year: 2025
 nbi_delimited_url: https://www.fhwa.dot.gov/bridge/nbi/{year}/delimited/{state}{year_short}.txt
 dc_building_permits_layer_url: https://maps2.dcgis.dc.gov/dcgis/rest/services/FEEDS/DCRA/FeatureServer/{layer}
-nyc_dob_job_filings_url: https://data.cityofnewyork.us/resource/ic3t-wcy2.json
-nyc_dob_now_filings_url: https://data.cityofnewyork.us/resource/w9ak-ipjd.json
-nyc_dob_permits_url: https://data.cityofnewyork.us/resource/rbx6-tga4.json
-nyc_dob_signal_start_date: 2025-01-01
 fema_nfhl_layer_url: https://hazards.fema.gov/arcgis/rest/services/public/NFHL/MapServer/28
 epa_frs_state_url: https://ordsext.epa.gov/FLA/www3/state_files/state_single_{state}.zip
 usaspending_award_search_url: https://api.usaspending.gov/api/v2/search/spending_by_award/

@@ -54,51 +54,52 @@ export function PublicPropertyDirectory({
   const [query, setQuery] = useState("");
   const [appliedQuery, setAppliedQuery] = useState("");
   const [page, setPage] = useState(1);
-  const [payload, setPayload] = useState<DirectoryPayload | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [directoryResult, setDirectoryResult] = useState<{
+    key: string;
+    payload: DirectoryPayload | null;
+  } | null>(null);
   const [saved, setSaved] = useState<Record<string, QualifiedSale>>({});
+  const requestParams = new URLSearchParams({
+    market,
+    search: appliedQuery,
+    page: String(page),
+    view: mode,
+    years: saleWindow,
+  }).toString();
+  const payload = directoryResult?.key === requestParams ? directoryResult.payload : null;
+  const loading = mode !== "prospects" && directoryResult?.key !== requestParams;
 
   useEffect(() => {
-    const stored = window.localStorage.getItem("nii-prospecting-list");
-    if (!stored) return;
-    try {
-      const parsed = JSON.parse(stored) as QualifiedSale[];
-      setSaved(Object.fromEntries(parsed.map((item) => [prospectKey(item), item])));
-    } catch {
-      window.localStorage.removeItem("nii-prospecting-list");
-    }
+    const frame = requestAnimationFrame(() => {
+      const stored = window.localStorage.getItem("nii-prospecting-list");
+      if (!stored) return;
+      try {
+        const parsed = JSON.parse(stored) as QualifiedSale[];
+        setSaved(Object.fromEntries(parsed.map((item) => [prospectKey(item), item])));
+      } catch {
+        window.localStorage.removeItem("nii-prospecting-list");
+      }
+    });
+    return () => cancelAnimationFrame(frame);
   }, []);
 
   useEffect(() => {
-    if (mode === "prospects") {
-      setLoading(false);
-      return;
-    }
+    if (mode === "prospects") return;
     const controller = new AbortController();
-    setLoading(true);
-    const params = new URLSearchParams({
-      market,
-      search: appliedQuery,
-      page: String(page),
-      view: mode,
-      years: saleWindow,
-    });
-    void fetch(`/api/public-property-directory?${params}`, { signal: controller.signal })
+    void fetch(`/api/public-property-directory?${requestParams}`, { signal: controller.signal })
       .then((response) => {
         if (!response.ok) throw new Error("Public property directory could not load.");
         return response.json() as Promise<DirectoryPayload>;
       })
       .then((result) => {
-        setPayload(result);
-        setLoading(false);
+        setDirectoryResult({ key: requestParams, payload: result });
       })
       .catch((error: unknown) => {
         if (error instanceof DOMException && error.name === "AbortError") return;
-        setPayload(null);
-        setLoading(false);
+        setDirectoryResult({ key: requestParams, payload: null });
       });
     return () => controller.abort();
-  }, [appliedQuery, market, mode, page, saleWindow]);
+  }, [mode, requestParams]);
 
   const selectedMarket = markets.find((item) => item.id === market);
   const savedItems = useMemo(() => Object.values(saved), [saved]);

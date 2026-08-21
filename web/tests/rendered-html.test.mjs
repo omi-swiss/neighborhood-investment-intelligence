@@ -1,10 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+const workerPromise = import(new URL("../dist/server/index.js", import.meta.url)).then(
+  ({ default: worker }) => worker,
+);
+
 async function request(path, init) {
-  const workerUrl = new URL("../dist/server/index.js", import.meta.url);
-  workerUrl.searchParams.set("test", `${process.pid}-${Date.now()}-${Math.random()}`);
-  const { default: worker } = await import(workerUrl.href);
+  const worker = await workerPromise;
   return worker.fetch(
     new Request(`http://localhost${path}`, {
       ...init,

@@ -114,16 +114,22 @@ export function OpportunityScreener({
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [investorSearch, setInvestorSearch] = useState<InvestorSearch>(defaultInvestorSearch);
   const [searchApplied, setSearchApplied] = useState(false);
-  const [filterSuggestions, setFilterSuggestions] = useState<FilterSuggestion[]>([]);
+  const [filterSuggestionResult, setFilterSuggestionResult] = useState<{
+    key: string;
+    items: FilterSuggestion[];
+  }>({ key: "", items: [] });
 
   useEffect(() => {
-    const saved = window.localStorage.getItem("nii-investor-search");
-    if (!saved) return;
-    try {
-      setInvestorSearch({ ...defaultInvestorSearch, ...JSON.parse(saved) as Partial<InvestorSearch> });
-    } catch {
-      window.localStorage.removeItem("nii-investor-search");
-    }
+    const frame = requestAnimationFrame(() => {
+      const saved = window.localStorage.getItem("nii-investor-search");
+      if (!saved) return;
+      try {
+        setInvestorSearch({ ...defaultInvestorSearch, ...JSON.parse(saved) as Partial<InvestorSearch> });
+      } catch {
+        window.localStorage.removeItem("nii-investor-search");
+      }
+    });
+    return () => cancelAnimationFrame(frame);
   }, []);
 
   useEffect(() => {
@@ -202,12 +208,16 @@ export function OpportunityScreener({
     strategyVersion: filters.strategyVersion,
     returnTo: "/",
   });
+  const suggestionKey = JSON.stringify(filters);
+  const filterSuggestions =
+    !loading &&
+    response?.total === 0 &&
+    filterSuggestionResult.key === suggestionKey
+      ? filterSuggestionResult.items
+      : [];
 
   useEffect(() => {
-    if (loading || !response || response.total > 0) {
-      setFilterSuggestions([]);
-      return;
-    }
+    if (loading || !response || response.total > 0) return;
     const candidates: Array<{ label: string; filters: ScreenerFilters }> = [];
     if (filters.minimumScore > 0) candidates.push({
       label: `Lower minimum opportunity score to ${Math.max(0, filters.minimumScore - 5)}`,
@@ -231,9 +241,16 @@ export function OpportunityScreener({
       const result = await fetch(apiUrl(candidate.filters, 1), { signal: controller.signal });
       const payload = result.ok ? await result.json() as AreaResponse : null;
       return { ...candidate, count: payload?.total ?? 0 };
-    })).then((items) => setFilterSuggestions(items.filter((item) => item.count > 0)));
+    })).then((items) => setFilterSuggestionResult({
+      key: suggestionKey,
+      items: items.filter((item) => item.count > 0),
+    })).catch((error: unknown) => {
+      if (!(error instanceof DOMException && error.name === "AbortError")) {
+        setFilterSuggestionResult({ key: suggestionKey, items: [] });
+      }
+    });
     return () => controller.abort();
-  }, [filters, loading, response]);
+  }, [filters, loading, response, suggestionKey]);
 
   useEffect(() => {
     if (view === "map" || !selected) return;
@@ -252,14 +269,18 @@ export function OpportunityScreener({
   useEffect(() => {
     if (!selected || explaining) return;
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") closeSelectedArea();
+      if (event.key === "Escape") {
+        const selectedId = selected.id;
+        setSelected(null);
+        requestAnimationFrame(() => document.getElementById(`area-row-${selectedId}`)?.focus());
+      }
     };
     window.addEventListener("keydown", onKeyDown);
     requestAnimationFrame(() => document.getElementById("selected-tract-dialog")?.focus());
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [explaining, selected]);
 
-  function selectArea(area: AreaRecord, source: "map" | "table" = "table") {
+  function selectArea(area: AreaRecord) {
     setSelected(area);
     const areaIndex = response?.mapItems.findIndex((item) => item.id === area.id) ?? -1;
     const selectedPage = areaIndex < 0 ? page : Math.floor(areaIndex / 20) + 1;
@@ -655,7 +676,7 @@ export function OpportunityScreener({
                       loading={loading}
                       focusLabel={markets.find((item) => item.id === filters.city)?.label ?? "All supported cities"}
                       onHover={setHoveredId}
-                      onSelect={(area) => selectArea(area, "map")}
+                      onSelect={selectArea}
                       onFocusCity={setCityFocus}
                     />
                   ) : null}
@@ -666,7 +687,7 @@ export function OpportunityScreener({
                       hoveredId={hoveredId}
                       onHover={setHoveredId}
                       onExplain={setExplaining}
-                      onSelect={(area) => selectArea(area, "table")}
+                      onSelect={selectArea}
                       compareIds={compareIds}
                       onToggleCompare={(areaId) =>
                         setCompareIds((current) =>

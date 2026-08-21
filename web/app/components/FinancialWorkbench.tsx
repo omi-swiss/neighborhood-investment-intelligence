@@ -263,27 +263,6 @@ export function FinancialWorkbench({
     return () => { cancelled = true; };
   }, [propertyId, modelId]);
 
-  useEffect(() => {
-    const annualTax = normalizeFinancialNumber(
-      assumptions.offerPrice * assumptions.propertyTaxRate,
-      2,
-    );
-    if (annualTax === assumptions.annualPropertyTaxes) return;
-    setAssumptions((current) => ({
-      ...current,
-      annualPropertyTaxes: annualTax,
-      inputSources: {
-        ...current.inputSources,
-        annualPropertyTaxes:
-          current.inputSources.propertyTaxRate ?? "system-default",
-      },
-    }));
-  }, [
-    assumptions.annualPropertyTaxes,
-    assumptions.offerPrice,
-    assumptions.propertyTaxRate,
-  ]);
-
   const scenarioResults = useMemo(
     () =>
       scenarios.map((scenario) => {
@@ -366,11 +345,23 @@ export function FinancialWorkbench({
   }, [assumptions]);
 
   function updateNumber(key: NumericKey, value: number, source: InputSource = "user-override") {
-    setAssumptions((current) => ({
-      ...current,
-      [key]: value,
-      inputSources: { ...current.inputSources, [key]: source },
-    }));
+    setAssumptions((current) => {
+      const next = {
+        ...current,
+        [key]: value,
+        inputSources: { ...current.inputSources, [key]: source },
+      };
+      if (key === "offerPrice" || key === "propertyTaxRate") {
+        const offerPrice = key === "offerPrice" ? value : current.offerPrice;
+        const propertyTaxRate = key === "propertyTaxRate" ? value : current.propertyTaxRate;
+        next.annualPropertyTaxes = normalizeFinancialNumber(offerPrice * propertyTaxRate, 2);
+        next.inputSources.annualPropertyTaxes =
+          key === "propertyTaxRate"
+            ? source
+            : current.inputSources.propertyTaxRate ?? "system-default";
+      }
+      return next;
+    });
   }
 
   function updateScenario(key: keyof ScenarioDefinition["overrides"], value: number) {
