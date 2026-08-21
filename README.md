@@ -1,33 +1,123 @@
 # Neighborhood Investment Intelligence
 
-Phase 0 and Phase 1 foundation for reproducible U.S. census-tract fundamentals. This repository intentionally does **not** rank tracts with a universal "best" score. It creates traceable observations, quality flags, and a tract-year profile that later strategy models can consume.
+An evidence-first real-estate market intelligence platform that combines a reproducible public-data pipeline with an investor-focused web application.
 
-## What is implemented
+![Neighborhood Investment Intelligence interface](web/public/og.png)
 
-* 2019-2024 ACS 5-year tract ingestion (configurable; six vintages by default)
-* Raw, checksum-addressed response preservation and ingestion lineage
-* Long-form estimates and MOEs, derived tract-year profile, inflation adjustment, and trends
-* Census tract, place, and CBSA reference geography from TIGER/Line, with lineage-preserving tract context assignments
-* Explicit profile completeness and ACS-MOE reliability findings, duplicate prevention, source metadata, and a Parquet export
-* Phase 2 LODES bulk-download and tract aggregation for resident workers, workplace jobs, and commuting flows
-* BLS QCEW county-level employment, establishment, and wage indicators, explicitly retained at county resolution
-* A local, read-only as-of dashboard that distinguishes observed data from future nowcasts/forecasts
-* Local DuckDB execution plus PostGIS production migration
+## Overview
 
-## Web application
+Neighborhood Investment Intelligence (NII) helps investors screen markets, investigate properties, model acquisition scenarios, and trace every material claim back to its source. The project favors explicit coverage, geography, observation dates, and confidence over unsupported rankings or fabricated completeness.
 
-The Tableau/Power BI exports and local diagnostic dashboard are no longer the planned primary
-product surface. The production web-product requirements and architecture are indexed in
-[Phase 0 product and architecture](docs/product/phase0/README.md). The first deployable Opportunity
-Screener slice and its remaining expansion boundary are documented in
-[Phase 1 implementation status](docs/product/phase1.md).
+The repository contains two connected products:
 
-## Quick start
+- A Python pipeline for ingesting, validating, and publishing neighborhood-level fundamentals.
+- A React and TypeScript application for market discovery, property research, underwriting, monitoring, and source review.
 
-Requires Python 3.11+ and `uv` (recommended).
+## Product capabilities
+
+- Multi-market opportunity screening with tract-level fundamentals, momentum, housing, risk, and source-vintage context.
+- A public-record Property Universe with recent-sale views, prospecting workflows, and explicit coverage gaps.
+- Property underwriting with cash and debt scenarios, NOI, DSCR, NPV, IRR, sensitivity matrices, and stress tests.
+- Market signals for migration, regulation, taxation, public investment, infrastructure, and evidence-backed private projects.
+- Watchlists, alerts, saved searches, saved areas, saved properties, and versioned financial models when a database is configured.
+- Data-health, methodology, and source-lineage surfaces that keep limitations visible.
+- A reproducible fundamentals pipeline spanning ACS, LODES, QCEW, housing, public-safety, construction, infrastructure, and regulatory evidence.
+
+## Can the website be reproduced from this repository?
+
+Technically, yes. A fresh checkout contains the application source, frozen dependency lockfile, generated public-data artifacts, database schema and migrations, deployment configuration, and rendered-route tests needed to reproduce the visible website experience.
+
+| Capability | What a fresh checkout provides | Additional requirement |
+| --- | --- | --- |
+| Market, area, signal, methodology, and underwriting views | Included source and generated artifacts | Node.js and pnpm |
+| Public-record property research | Included snapshots plus bounded official public-data connectors | Internet access for live official queries |
+| Saved analyses, watchlists, alerts, and user strategies | Application routes and Drizzle schema | A separate Cloudflare D1-compatible database |
+| Fresh pipeline exports | Python pipeline, migrations, source registry, and tests | Source-specific API access and processing time |
+| Comprehensive active listings | Integration boundaries only | A licensed listing feed and redistribution rights |
+| Production hosting | Cloudflare-compatible worker output and Sites metadata | A hosting project owned by the person deploying it |
+
+The checked-in Sites project identifier is not a shared deployment credential. Anyone deploying a copy must create and configure their own hosting project and database. No external API key is required to build or test the included web snapshot.
+
+### Usage rights
+
+This is a publicly viewable, source-available portfolio repository—not an open-source license grant. The current [LICENSE](LICENSE) does not grant permission to copy, modify, distribute, sublicense, sell, or use the software or bundled data without prior written permission. Third-party data remains subject to its originating source terms.
+
+## Architecture
+
+```mermaid
+flowchart LR
+    A["Public data and primary-source evidence"] --> B["Python ingestion and validation"]
+    B --> C["DuckDB analytics and PostGIS-ready schemas"]
+    C --> D["Versioned web artifacts"]
+    D --> E["React + TypeScript worker application"]
+    E --> F["Screening, underwriting, signals, and monitoring"]
+    G["D1-compatible persistence"] --> E
+```
+
+| Layer | Technologies |
+| --- | --- |
+| Data engineering | Python, pandas, PyArrow, DuckDB, HTTPX, Pydantic |
+| Geospatial | GeoPandas, Shapely, TIGER/Line, PostGIS-ready migrations |
+| Web application | React, TypeScript, Vinext/Vite, Tailwind CSS |
+| Persistence | Drizzle ORM and Cloudflare D1-compatible APIs |
+| Hosting | Cloudflare Worker-compatible output and Sites metadata |
+| Quality | pytest, Node test runner, ESLint, production builds, GitHub Actions |
+
+## Repository guide
+
+| Path | Purpose |
+| --- | --- |
+| `src/neighborhood_intelligence/` | Ingestion, normalization, geography, analytics, and export logic |
+| `config/` | Source registry, metrics, geographies, and runtime configuration |
+| `migrations/` | DuckDB and PostgreSQL analytical schemas |
+| `reference/` | Curated public reference records and evidence inputs |
+| `tests/` | Pipeline and data-contract tests |
+| `web/app/` | User interface, routes, APIs, and checked-in web artifacts |
+| `web/db/` | Persistent application schema and database helpers |
+| `web/drizzle/` | Versioned application-database migrations |
+| `docs/` | Architecture, methodology, source, operations, and product documentation |
+| `.agents/` and `.codex/` | Project-scoped agent guidance and review workflows |
+
+## Reproduce the web application
+
+Requirements:
+
+- Node.js 22.13 or newer
+- Corepack or pnpm 10.28
 
 ```powershell
-cd 'C:\Users\omarh\Documents\New project\neighborhood-intelligence'
+git clone https://github.com/omi-swiss/neighborhood-investment-intelligence.git
+cd neighborhood-investment-intelligence/web
+corepack enable
+pnpm install --frozen-lockfile
+pnpm run dev
+```
+
+Open the local URL printed by the development server. The checked-in generated artifacts support market discovery and public-data exploration without first rebuilding the Python warehouse.
+
+Persistent workflows require a D1-compatible database exposed through the `DB` binding. The schema is defined in `web/db/schema.ts`, and migrations are tracked in `web/drizzle/`. See [environment and integrations](web/docs/environment-and-integrations.md) for the runtime contract.
+
+### Validate the web application
+
+```powershell
+cd web
+pnpm install --frozen-lockfile
+pnpm run lint
+pnpm run build
+node --test tests/rendered-html.test.mjs
+```
+
+The rendered test suite exercises the built worker rather than relying only on component-level mocks.
+
+## Run the data pipeline
+
+Requirements:
+
+- Python 3.11 or 3.12
+- `uv` recommended
+- The `geospatial` extra for geometry ingestion and exports
+
+```powershell
 uv sync --all-groups --extra geospatial
 uv run nii init
 uv run nii register-sources
@@ -38,25 +128,60 @@ uv run nii export-profile
 uv run pytest
 ```
 
-`--state 11` is a small reproducibility smoke run for the District of Columbia. Omit `--state` to run all configured states. Census currently requires a `CENSUS_API_KEY` for data queries; keep it only in the ignored local `.env` or a production secret manager. Results are in `data/warehouse/nii.duckdb` and `data/published/tract_year_profile.parquet`.
+District of Columbia is used as a bounded smoke run. Omit the state filter only when you intend to process every configured geography.
 
-Load tract geometry plus official Census-place and CBSA context after the data-only smoke run. The command requires the declared `geospatial` extra:
+Load tract geometry and official Census-place and CBSA context with:
 
 ```powershell
 uv run nii ingest-geography --state 11
 ```
 
-## Guardrails
+Raw responses, local databases, credentials, and licensed source extracts are intentionally ignored. Store API keys only in a local `.env` file or a production secret manager.
 
-ACS 5-year releases overlap; the profile labels each source window and does not present consecutive vintages as independent annual observations. 2019-2023 uses 2010 tract geography, while newer releases use 2020 geography; therefore cross-vintage trend output is deliberately flagged `GEOGRAPHY_NORMALIZATION_REQUIRED` until an approved relationship/crosswalk table is loaded.
+## Data sources
 
-Do not commit `data/raw`, source extracts, API keys, or licensed data. Read [architecture.md](docs/architecture.md), [data_sources.md](docs/data_sources.md), [geography.md](docs/geography.md), and [operations.md](docs/operations.md) before deploying.
+The project is designed around public or publicly documented sources, including:
 
-Phase 2 design, coverage caveats, and the no-key LODES workflow are in [phase2_jobs.md](docs/phase2_jobs.md).
-Phase 3's observed FHFA tract price-index foundation and market-data safeguards are in [phase3_housing.md](docs/phase3_housing.md).
-Phase 4's resolution-safe FBI Crime Data Explorer baseline is in [phase4_public_safety.md](docs/phase4_public_safety.md).
-Phase 5's county-native Census construction authorization layer is in [phase5_construction.md](docs/phase5_construction.md).
+- U.S. Census Bureau ACS, TIGER/Line, Building Permits Survey, and LODES
+- U.S. Bureau of Labor Statistics QCEW
+- Federal Housing Finance Agency house-price indexes
+- FBI Crime Data Explorer
+- Federal Highway Administration National Bridge Inventory
+- SEC filings and company investor-relations disclosures
+- State and local economic-development, planning, parcel, assessment, deed, and sale records
 
-## Explore locally
+Every published observation should retain its source, observation period, geographic resolution, retrieval lineage, and confidence or completeness signal. See [data sources](docs/data_sources.md), [geography](docs/geography.md), and [operations](docs/operations.md).
 
-After ingestion, run `uv run nii serve-dashboard` and open `http://127.0.0.1:8787`. Enter a tract (11 digits) or county (5 digits) GEOID and an as-of date. The dashboard selects the latest value that was available by that date and keeps the source geographic resolution visible; it never substitutes county QCEW values for tract values.
+## Methodology and limitations
+
+- ACS five-year releases have overlapping survey windows and must not be presented as independent annual observations.
+- Census geography changes across vintages; trend output remains flagged when an approved normalization relationship is unavailable.
+- County-native indicators are not silently down-assigned to census tracts.
+- Public parcel records describe a property universe, not a comprehensive active-listing marketplace.
+- Project announcements remain announcements until primary evidence supports a stronger status.
+- Screening metrics and modeled returns are analytical aids, not appraisals, guarantees, or investment advice.
+- Local fields and update schedules vary across jurisdictions; missing coverage remains explicit.
+
+Detailed methodology and phase documentation is available under [`docs/`](docs/).
+
+## Quality and responsible use
+
+GitHub Actions installs the project from a fresh checkout and runs the Python pipeline tests, production web build, and rendered-route suite. Local checks should pass before a pull request is opened.
+
+Do not commit:
+
+- API keys, authentication secrets, or local environment files
+- Raw source downloads or local databases
+- Protected personal information or private contact details
+- Licensed feeds or third-party data without redistribution permission
+- Claims that exceed the source geography, observation window, or evidence status
+
+Users remain responsible for fair-housing, privacy, solicitation, investment, and data-provider requirements in their jurisdiction. See [SECURITY.md](SECURITY.md) for vulnerability reporting and [CONTRIBUTING.md](CONTRIBUTING.md) for the development workflow.
+
+## Project workflows
+
+Project-specific guidance lives in [AGENTS.md](AGENTS.md), reusable skills live under [`.agents/skills/`](.agents/skills/), and narrow review agents live under [`.codex/agents/`](.codex/agents/). These workflows help preserve provenance, accessibility, evidence quality, and safe deployment practices; they do not replace human review.
+
+## License
+
+Copyright © 2026. All rights reserved. Review [LICENSE](LICENSE) before copying, using, or redistributing the software or bundled data.
