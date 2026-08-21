@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { formatCurrency, formatInteger, formatPercent } from "../lib/area-shared";
 import type { MarketContext, MarketMigrationContext } from "../data/market-context";
 import { marketCounty } from "../lib/market-geography";
@@ -93,8 +93,6 @@ export function SignalsWorkspace({
   const disclosedCapital = marketEvents.reduce((sum, event) =>
     sum + (event.investmentAmount && event.amountType !== "Program total" ? event.investmentAmount : 0), 0);
 
-  useEffect(() => setEventPage(1), [category, fundingLevel, marketId, search, signalType, stage]);
-
   function toggleSaved(key: string) {
     setSaved((items) => items.includes(key) ? items.filter((item) => item !== key) : [...items, key]);
   }
@@ -106,7 +104,7 @@ export function SignalsWorkspace({
       <div className="signals-toolbar">
         <label className="field" htmlFor="signals-market">
           <span>Market</span>
-          <select id="signals-market" value={marketId} onChange={(event) => setMarketId(event.target.value)}>
+          <select id="signals-market" value={marketId} onChange={(event) => { setMarketId(event.target.value); setEventPage(1); }}>
             {profiles.map((item) => <option key={item.marketId} value={item.marketId}>{item.label}</option>)}
           </select>
         </label>
@@ -209,20 +207,20 @@ export function SignalsWorkspace({
           <ProfileMetric label="Disclosed capital" value={formatCompactCurrency(disclosedCapital)} note="Excludes portfolio totals to limit double counting" />
         </div>
         <div className="signals-filters">
-          <input aria-label="Search signals" onChange={(event) => setSearch(event.target.value)} placeholder="Search project or organization" value={search} />
-          <select aria-label="Filter signal category" value={category} onChange={(event) => setCategory(event.target.value)}>
+          <input aria-label="Search signals" onChange={(event) => { setSearch(event.target.value); setEventPage(1); }} placeholder="Search project or organization" value={search} />
+          <select aria-label="Filter signal category" value={category} onChange={(event) => { setCategory(event.target.value); setEventPage(1); }}>
             <option value="all">All categories</option>
             {categories.map((item) => <option key={item}>{item}</option>)}
           </select>
-          <select aria-label="Filter signal stage" value={stage} onChange={(event) => setStage(event.target.value)}>
+          <select aria-label="Filter signal stage" value={stage} onChange={(event) => { setStage(event.target.value); setEventPage(1); }}>
             <option value="all">All stages</option>
             {stages.map((item) => <option key={item}>{item}</option>)}
           </select>
-          <select aria-label="Filter signal type" value={signalType} onChange={(event) => setSignalType(event.target.value)}>
+          <select aria-label="Filter signal type" value={signalType} onChange={(event) => { setSignalType(event.target.value); setEventPage(1); }}>
             <option value="all">All signal types</option>
             {signalTypes.map((item) => <option key={item} value={item}>{item}</option>)}
           </select>
-          <select aria-label="Filter funding level" value={fundingLevel} onChange={(event) => setFundingLevel(event.target.value)}>
+          <select aria-label="Filter funding level" value={fundingLevel} onChange={(event) => { setFundingLevel(event.target.value); setEventPage(1); }}>
             <option value="all">All funding levels</option>
             {fundingLevels.map((item) => <option key={item} value={item}>{item}</option>)}
           </select>

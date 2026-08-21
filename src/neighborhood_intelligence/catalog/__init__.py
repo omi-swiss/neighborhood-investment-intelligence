@@ -54,30 +54,6 @@ OFFICIAL_SOURCES = (
 
 PHASE8_OFFICIAL_SOURCES = (
     (
-        "nyc_dob_job_filings", "New York City Department of Buildings",
-        "DOB Job Application Filings", "https://data.cityofnewyork.us/Housing-Development/DOB-Job-Application-Filings/ic3t-wcy2",
-        "New York City", "building job record", "2000-present; configured recent window", "daily",
-        "NYC Open Data; retain Department of Buildings attribution",
-        "A job filing is an application record, not a permit, construction start, project cost, financing, completion, or investment recommendation.",
-        "A", "record-dependent", "https://data.cityofnewyork.us/Housing-Development/DOB-Job-Application-Filings/ic3t-wcy2",
-    ),
-    (
-        "nyc_dob_now_filings", "New York City Department of Buildings",
-        "DOB NOW: Build Job Application Filings", "https://data.cityofnewyork.us/",
-        "New York City", "building job record", "current; configured recent window", "daily",
-        "NYC Open Data; retain Department of Buildings attribution",
-        "A DOB NOW filing is an application record, not a permit, construction start, project cost, financing, completion, or investment recommendation.",
-        "A", "record-dependent", "https://data.cityofnewyork.us/",
-    ),
-    (
-        "nyc_dob_permits", "New York City Department of Buildings",
-        "DOB Permit Issuance", "https://data.cityofnewyork.us/",
-        "New York City", "building permit record", "current; configured recent window", "daily",
-        "NYC Open Data; retain Department of Buildings attribution",
-        "An issued permit is evidence of authorized work, not a construction start, project cost, financing, completion, or investment recommendation.",
-        "A", "record-dependent", "https://data.cityofnewyork.us/",
-    ),
-    (
         "dc_building_permits", "District of Columbia Department of Buildings",
         "Building Permits", "https://opendata.dc.gov/", "District of Columbia",
         "permit point", "2025-present pilot", "daily",

@@ -6,7 +6,6 @@ export async function GET(request: Request) {
   const marketId = search.get("marketId") ?? "";
   const requestedLimit = Number(search.get("limit") ?? "100");
   const limit = Math.min(5000, Math.max(1, Number.isFinite(requestedLimit) ? requestedLimit : 100));
-  const dcOnlyLayer = ["environment", "flood"].includes(layer);
   const developmentMarketId = (pin: typeof phase8.developmentPins[number]) => pin.marketId ?? "place:1150000";
   const developmentAvailable = new Set(phase8.developmentPins.map(developmentMarketId));
   if (layer === "development" && !developmentAvailable.has(marketId)) {

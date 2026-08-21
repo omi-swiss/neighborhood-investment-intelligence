@@ -34,9 +34,3 @@ Each import receives an ingestion run, checksum, and immutable raw asset record.
 No API key is required for these reviewed CSV imports. Later automated adapters should favor capital budgets, procurement/award records, permits, planning records, financing/property records, SEC filings, and official company disclosures. Press coverage is discovery evidence, not final verification.
 
 The FHWA layer remains county-level and is not down-assigned to tracts. Transit accessibility remains separate from bridge condition and should use official schedule/service and capital-project evidence when available.
-
-## NYC urbanism connector
-
-`nii ingest-nyc-development --start-date YYYY-MM-DD --limit 250` loads the newest bounded set from three NYC Department of Buildings Open Data feeds: legacy job filings, DOB NOW filings, and issued permits. Each feed retains its source URL, retrieval asset, configured observation window, BBL when supplied, and native status. Filings remain **application evidence**; issued permits remain **authorized-work evidence**. Neither is a construction start, completion, project cost, or financing commitment.
-
-The Phase 8 export assigns NYC records to `place:3651000`, so they are returned only for New York City. Land-use applications and public-capital projects require separate adapters because their lifecycle and financial semantics differ from DOB records; they must not be merged into the permit stream.
